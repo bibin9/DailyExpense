@@ -10,12 +10,20 @@ import 'expense_form_screen.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
-void openExpenseForm(BuildContext context, AppSession session, [Expense? e]) {
-  Navigator.of(context).push(
-    MaterialPageRoute<void>(
+/// Opens the add/edit form. A confirmation returned by the form ("Changes
+/// saved", "Expense deleted") is shown by the calling screen's Scaffold, so
+/// a floating message is placed above that screen's Add button.
+Future<void> openExpenseForm(
+  BuildContext context,
+  AppSession session, [
+  Expense? e,
+]) async {
+  final message = await Navigator.of(context).push<String>(
+    MaterialPageRoute<String>(
       builder: (_) => ExpenseFormScreen(session: session, existing: e),
     ),
   );
+  if (message != null && context.mounted) showMessage(context, message);
 }
 
 class HomeScreen extends StatelessWidget {
@@ -47,7 +55,7 @@ class HomeScreen extends StatelessWidget {
         heroTag: 'fab-add-expense',
         onPressed: () => openExpenseForm(context, session),
         icon: const Icon(Icons.add),
-        label: const Text('Add Expense', style: TextStyle(fontSize: 17)),
+        label: const FabLabel('Add Expense', fontSize: 17),
       ),
       body: ListenableBuilder(
         listenable: controller,

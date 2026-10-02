@@ -174,12 +174,49 @@ class ExpenseTile extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
       ),
       subtitle: Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
-      trailing: Text(
-        formatAed(e.amountFils),
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-      ),
+      trailing: AmountLabel(e.amountFils),
     );
   }
+}
+
+/// Floating-button label whose font scaling is capped at 1.3× so the button
+/// never grows wider than a small phone's screen at large accessibility
+/// font sizes (the rest of the app scales fully).
+class FabLabel extends StatelessWidget {
+  const FabLabel(this.text, {super.key, this.fontSize});
+  final String text;
+  final double? fontSize;
+
+  @override
+  Widget build(BuildContext context) => MediaQuery.withClampedTextScaling(
+    maxScaleFactor: 1.3,
+    child: Text(text, style: TextStyle(fontSize: fontSize)),
+  );
+}
+
+/// An AED amount for the trailing side of a list row. Never wider than
+/// ~38% of the screen; shrinks to fit on small phones / large fonts instead
+/// of squeezing out the row's title (which breaks ListTile layout).
+class AmountLabel extends StatelessWidget {
+  const AmountLabel(this.fils, {super.key, this.fontSize = 15});
+  final int fils;
+  final double fontSize;
+
+  @override
+  Widget build(BuildContext context) => ConstrainedBox(
+    constraints: BoxConstraints(
+      maxWidth: MediaQuery.sizeOf(context).width * 0.38,
+    ),
+    child: FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerRight,
+      child: Text(
+        formatAed(fils),
+        maxLines: 1,
+        style: TextStyle(fontWeight: FontWeight.w600, fontSize: fontSize),
+      ),
+    ),
+  );
 }
 
 void showMessage(BuildContext context, String text, {bool error = false}) {

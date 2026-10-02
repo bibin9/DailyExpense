@@ -101,46 +101,10 @@ class StartupErrorScreen extends StatelessWidget {
       gate.failure?.kind == FailureKind.wrongKeyOrCorrupt;
 
   Future<void> _confirmStartFresh(BuildContext context) async {
-    final typed = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) => AlertDialog(
-          title: const Text('Start with an empty record book?'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Your old records cannot be opened on this phone. The '
-                'unreadable file will be kept aside (not deleted), but the app '
-                'will start empty.\n\nType START FRESH to confirm.',
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: typed,
-                autocorrect: false,
-                enableSuggestions: false,
-                onChanged: (_) => setState(() {}),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: typed.text.trim() == 'START FRESH'
-                  ? () => Navigator.pop(ctx, true)
-                  : null,
-              child: const Text('Start fresh'),
-            ),
-          ],
-        ),
-      ),
+      builder: (_) => const _StartFreshDialog(),
     );
-    typed.dispose();
     if (ok == true) await gate.setAsideUnreadableDataAndRestart();
   }
 
@@ -335,4 +299,56 @@ class _ActivationScreenState extends State<ActivationScreen> {
       ],
     );
   }
+}
+
+/// Typed confirmation; owns its controller for the dialog's whole lifetime.
+class _StartFreshDialog extends StatefulWidget {
+  const _StartFreshDialog();
+  @override
+  State<_StartFreshDialog> createState() => _StartFreshDialogState();
+}
+
+class _StartFreshDialogState extends State<_StartFreshDialog> {
+  final _typed = TextEditingController();
+
+  @override
+  void dispose() {
+    _typed.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Start with an empty record book?'),
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Your old records cannot be opened on this phone. The '
+          'unreadable file will be kept aside (not deleted), but the app '
+          'will start empty.\n\nType START FRESH to confirm.',
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _typed,
+          autocorrect: false,
+          enableSuggestions: false,
+          onChanged: (_) => setState(() {}),
+        ),
+      ],
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context, false),
+        child: const Text('Cancel'),
+      ),
+      TextButton(
+        onPressed: _typed.text.trim() == 'START FRESH'
+            ? () => Navigator.pop(context, true)
+            : null,
+        child: const Text('Start fresh'),
+      ),
+    ],
+  );
 }

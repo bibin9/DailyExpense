@@ -171,10 +171,11 @@ class ExpenseRepository {
           )
         : _db.raw.select(
             '''$_select
-               WHERE (e.captured_at_utc_ms < ?)
-                  OR (e.captured_at_utc_ms = ? AND e.id < ?)
+               WHERE (e.captured_at_utc_ms, e.id) < (?, ?)
                ORDER BY e.captured_at_utc_ms DESC, e.id DESC LIMIT ?;''',
-            [after.capturedAtUtcMs, after.capturedAtUtcMs, after.id, limit],
+            // Row-value comparison lets SQLite walk idx_expenses_captured
+            // directly (an OR here forced a full scan on every page).
+            [after.capturedAtUtcMs, after.id, limit],
           );
     return rows.map(_map).toList();
   }

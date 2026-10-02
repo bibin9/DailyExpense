@@ -169,12 +169,7 @@ class ReportsScreen extends StatelessWidget {
                             subtitle: Text(
                               c.count == 1 ? '1 entry' : '${c.count} entries',
                             ),
-                            trailing: Text(
-                              formatAed(c.totalFils),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                            trailing: AmountLabel(c.totalFils),
                           ),
                       ],
                     ),

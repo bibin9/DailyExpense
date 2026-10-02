@@ -29,6 +29,23 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
     existing: widget.existing,
   );
   Timer? _tick;
+
+  /// Messages shown while on this form stay on this form: they disappear
+  /// when the form closes instead of covering buttons on the next screen.
+  final _messenger = GlobalKey<ScaffoldMessengerState>();
+
+  void _toast(String text, {bool error = false}) {
+    _messenger.currentState
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(text),
+          backgroundColor: error ? AppColors.danger : null,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
   late DateTime _now = widget.session.clock.now();
 
   @override
@@ -56,17 +73,14 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
     switch (outcome) {
       case SaveOutcome.saved:
         if (c.isEditing) {
-          Navigator.of(context).pop();
-          showMessage(context, 'Changes saved');
+          // The screen we return to shows the confirmation in its own
+          // Scaffold, so it never covers that screen's buttons.
+          Navigator.of(context).pop('Changes saved');
         } else {
-          showMessage(context, 'Expense saved');
+          _toast('Expense saved');
         }
       case SaveOutcome.failed:
-        showMessage(
-          context,
-          c.failureMessage ?? 'Could not save.',
-          error: true,
-        );
+        _toast(c.failureMessage ?? 'Could not save.', error: true);
       case SaveOutcome.invalid:
       case SaveOutcome.ignoredBusy:
         break;
@@ -101,14 +115,9 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
     final deleted = await c.delete();
     if (!mounted) return;
     if (deleted) {
-      Navigator.of(context).pop();
-      showMessage(context, 'Expense deleted');
+      Navigator.of(context).pop('Expense deleted');
     } else {
-      showMessage(
-        context,
-        c.failureMessage ?? 'Could not delete.',
-        error: true,
-      );
+      _toast(c.failureMessage ?? 'Could not delete.', error: true);
     }
   }
 
@@ -151,27 +160,47 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
           '${formatDateLong(stamp.localDate)}, '
           '${formatClock(stamp.hour, stamp.minute, use24h: use24)}';
     }
+    // Full-width text (no leading/trailing icons squeezing it) so the card
+    // stays compact on small phones with large accessibility fonts.
     return Card(
       color: AppColors.blueLight,
-      child: ListTile(
-        leading: const Icon(Icons.schedule, color: AppColors.blueDark),
-        title: Text(
-          title,
-          style: const TextStyle(fontSize: 13, color: AppColors.muted),
-        ),
-        subtitle: Text(
-          value,
-          style: const TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: AppColors.text,
-          ),
-        ),
-        trailing: Tooltip(
-          message: c.isEditing
-              ? 'The original date and time cannot be changed.'
-              : 'Taken from the phone clock when you tap Save. It cannot be edited.',
-          child: const Icon(Icons.info_outline, color: AppColors.muted),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.schedule, size: 18, color: AppColors.blueDark),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.muted,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                color: AppColors.text,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              c.isEditing
+                  ? 'The original date and time cannot be changed.'
+                  : 'Recorded when you tap Save. It cannot be edited.',
+              style: const TextStyle(fontSize: 12, color: AppColors.muted),
+            ),
+          ],
         ),
       ),
     );
@@ -187,145 +216,162 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
           Navigator.of(context).pop();
         }
       },
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(c.isEditing ? 'Edit expense' : 'Add expense'),
-          actions: [
-            if (c.isEditing)
-              IconButton(
-                tooltip: 'Delete',
-                icon: const Icon(Icons.delete_outline),
-                onPressed: c.isSaving ? null : _delete,
-              ),
-          ],
-        ),
-        body: ListenableBuilder(
-          listenable: c,
-          builder: (context, _) {
-            final cats = c.selectableCategories();
-            final remarksLen = remarksLength(c.remarks.text);
-            return SafeArea(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                children: [
-                  _dateTimeCard(context),
-                  const SizedBox(height: 20),
-                  if (cats.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 12),
-                      child: Text(
-                        'There are no categories turned on. Go to Categories '
-                        'and turn one on or add one.',
-                        style: TextStyle(color: AppColors.danger),
-                      ),
-                    ),
-                  DropdownButtonFormField<int>(
-                    key: ValueKey('cat-${c.categoryId}'),
-                    initialValue: c.categoryId,
-                    isExpanded: true,
-                    decoration: InputDecoration(
-                      labelText: 'Description *',
-                      hintText: 'Select a category',
-                      helperText: 'What was the money spent on?',
-                      errorText: c.errors.category,
-                      errorMaxLines: 3,
-                    ),
-                    items: [
-                      for (final cat in cats)
-                        DropdownMenuItem(
-                          value: cat.id,
-                          enabled: cat.isActive,
-                          child: Text(
-                            cat.isActive
-                                ? cat.name
-                                : '${cat.name} (turned off)',
-                            overflow: TextOverflow.ellipsis,
-                          ),
+      child: ScaffoldMessenger(
+        key: _messenger,
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text(c.isEditing ? 'Edit expense' : 'Add expense'),
+            actions: [
+              if (c.isEditing)
+                IconButton(
+                  tooltip: 'Delete',
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: c.isSaving ? null : _delete,
+                ),
+            ],
+          ),
+          body: ListenableBuilder(
+            listenable: c,
+            builder: (context, _) {
+              final cats = c.selectableCategories();
+              final remarksLen = remarksLength(c.remarks.text);
+              return SafeArea(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  children: [
+                    _dateTimeCard(context),
+                    const SizedBox(height: 20),
+                    if (cats.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 12),
+                        child: Text(
+                          'There are no categories turned on. Go to Categories '
+                          'and turn one on or add one.',
+                          style: TextStyle(color: AppColors.danger),
                         ),
-                    ],
-                    onChanged: c.isSaving ? null : c.selectCategory,
-                  ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: c.amount,
-                    enabled: !c.isSaving,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(
-                        RegExp(r'[0-9.,٠-٩۰-۹٫]'),
                       ),
-                      LengthLimitingTextInputFormatter(10),
-                    ],
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    enableIMEPersonalizedLearning: false,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    decoration: InputDecoration(
-                      labelText: 'Amount *',
-                      prefixText: 'AED  ',
-                      hintText: '0.00',
-                      helperText: 'Example: 25 or 25.50',
-                      errorText: c.errors.amount,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: c.remarks,
-                    enabled: !c.isSaving,
-                    minLines: 2,
-                    maxLines: 5,
-                    textCapitalization: TextCapitalization.sentences,
-                    enableIMEPersonalizedLearning: false,
-                    decoration: InputDecoration(
-                      labelText: _remarksRequired(cats)
-                          ? 'Remarks *'
-                          : 'Remarks (optional)',
-                      alignLabelWithHint: true,
-                      helperText: _remarksRequired(cats)
-                          ? 'Required for this category'
-                          : 'Any extra detail, e.g. vehicle number',
-                      counterText: '$remarksLen / $maxRemarksLength',
-                      errorText: c.errors.remarks,
-                      errorMaxLines: 3,
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-                  FilledButton.icon(
-                    onPressed: c.isSaving || cats.isEmpty ? null : _save,
-                    icon: c.isSaving
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: Colors.white,
+                    DropdownButtonFormField<int>(
+                      key: ValueKey('cat-${c.categoryId}'),
+                      initialValue: c.categoryId,
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        labelText: 'Description *',
+                        hintText: 'Select a category',
+                        helperText: 'What was the money spent on?',
+                        errorText: c.errors.category,
+                        errorMaxLines: 3,
+                      ),
+                      items: [
+                        for (final cat in cats)
+                          DropdownMenuItem(
+                            value: cat.id,
+                            enabled: cat.isActive,
+                            child: Text(
+                              cat.isActive
+                                  ? cat.name
+                                  : '${cat.name} (turned off)',
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          )
-                        : const Icon(Icons.check),
-                    label: Text(
-                      c.isSaving
-                          ? 'Saving…'
-                          : (c.isEditing ? 'Save changes' : 'Save expense'),
+                          ),
+                      ],
+                      onChanged: c.isSaving ? null : c.selectCategory,
                     ),
-                  ),
-                  if (c.failureMessage != null) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      c.failureMessage!,
-                      style: const TextStyle(color: AppColors.danger),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: c.amount,
+                      enabled: !c.isSaving,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'[0-9.,٠-٩۰-۹٫]'),
+                        ),
+                        LengthLimitingTextInputFormatter(10),
+                      ],
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      enableIMEPersonalizedLearning: false,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      decoration: InputDecoration(
+                        labelText: 'Amount *',
+                        prefixText: 'AED  ',
+                        hintText: '0.00',
+                        helperText: 'Example: 25 or 25.50',
+                        errorText: c.errors.amount,
+                      ),
                     ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: c.remarks,
+                      enabled: !c.isSaving,
+                      minLines: 2,
+                      maxLines: 5,
+                      textCapitalization: TextCapitalization.sentences,
+                      enableIMEPersonalizedLearning: false,
+                      decoration: InputDecoration(
+                        labelText: _remarksRequired(cats)
+                            ? 'Remarks *'
+                            : 'Remarks (optional)',
+                        alignLabelWithHint: true,
+                        helperText: _remarksRequired(cats)
+                            ? 'Required for this category'
+                            : 'Any extra detail, e.g. vehicle number',
+                        counterText: '$remarksLen / $maxRemarksLength',
+                        errorText: c.errors.remarks,
+                        errorMaxLines: 3,
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    FilledButton(
+                      onPressed: c.isSaving || cats.isEmpty ? null : _save,
+                      // Scales the label down instead of overflowing the
+                      // button on small phones with large fonts.
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (c.isSaving)
+                              const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Colors.white,
+                                ),
+                              )
+                            else
+                              const Icon(Icons.check),
+                            const SizedBox(width: 8),
+                            Text(
+                              c.isSaving
+                                  ? 'Saving…'
+                                  : (c.isEditing
+                                        ? 'Save changes'
+                                        : 'Save expense'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (c.failureMessage != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        c.failureMessage!,
+                        style: const TextStyle(color: AppColors.danger),
+                      ),
+                    ],
                   ],
-                ],
-              ),
-            );
-          },
+                ),
+              );
+            },
+          ),
         ),
       ),
     );

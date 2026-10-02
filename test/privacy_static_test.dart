@@ -114,29 +114,47 @@ void main() {
     expect(mig.contains('DELETE FROM'), isFalse);
   });
 
-  test('no secrets committed: no private keys or keystores in the repo', () {
+  test('no secrets committed: nothing secret is tracked or committable', () {
+    // Checks what git would commit (tracked + untracked-but-not-ignored),
+    // so a local android/key.properties or keystore that .gitignore covers
+    // is fine, but one that would be committed is not.
+    final git = Process.runSync('git', [
+      'ls-files',
+      '--cached',
+      '--others',
+      '--exclude-standard',
+    ]);
+    expect(git.exitCode, 0, reason: 'git is needed for this check');
     final offenders = <String>[];
-    for (final e in Directory(
-      '.',
-    ).listSync(recursive: true, followLinks: false)) {
-      final p = e.path.replaceAll('\\', '/');
-      if (p.contains('/build/') ||
-          p.contains('/.dart_tool/') ||
-          p.contains('/test/')) {
-        continue;
-      }
-      if (e is! File) continue;
+    for (final p in '${git.stdout}'.split('\n').map((l) => l.trim())) {
+      if (p.isEmpty || p.startsWith('test/')) continue;
       if (RegExp(r'\.(jks|keystore|p12|mobileprovision)$').hasMatch(p) ||
-          p.endsWith('key.properties')) {
+          p.endsWith('key.properties') ||
+          p.endsWith('.key.pem')) {
         offenders.add(p);
       } else if (RegExp(r'\.(pem|json|dart|yaml|md|properties)$').hasMatch(p)) {
-        final text = e.readAsStringSync();
+        final f = File(p);
+        if (!f.existsSync()) continue;
+        final text = f.readAsStringSync();
         if (text.contains('-----BEGIN EC PRIVATE KEY-----\nM') ||
-            text.contains('-----BEGIN PRIVATE KEY-----\nM')) {
+            text.contains('-----BEGIN PRIVATE KEY-----\nM') ||
+            RegExp(r'(store|key)Password\s*=').hasMatch(text)) {
           offenders.add(p);
         }
       }
     }
     expect(offenders, isEmpty);
+  });
+
+  test('.gitignore keeps signing files and issuer keys out of git', () {
+    for (final f in [
+      'android/key.properties',
+      'x.keystore',
+      'x.jks',
+      'a.issuer.key.pem',
+    ]) {
+      final r = Process.runSync('git', ['check-ignore', '-q', f]);
+      expect(r.exitCode, 0, reason: '$f must be git-ignored');
+    }
   });
 }

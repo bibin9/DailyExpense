@@ -11,53 +11,22 @@ class CategoriesScreen extends StatelessWidget {
   final CategoriesController controller;
 
   Future<void> _edit(BuildContext context, {Category? category}) async {
-    final text = TextEditingController(text: category?.name ?? '');
-    String? error;
-    await showDialog<void>(
+    final done = await showDialog<String>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) {
-          void submit() {
-            final err = category == null
-                ? controller.add(text.text)
-                : controller.rename(category.id, text.text);
-            if (err == null) {
-              Navigator.pop(ctx);
-              showMessage(
-                context,
-                category == null ? 'Category added' : 'Category renamed',
-              );
-            } else {
-              setState(() => error = err);
-            }
-          }
-
-          return AlertDialog(
-            title: Text(category == null ? 'Add category' : 'Rename category'),
-            content: TextField(
-              controller: text,
-              autofocus: true,
-              maxLength: maxCategoryNameLength,
-              textCapitalization: TextCapitalization.words,
-              decoration: InputDecoration(
-                labelText: 'Name',
-                errorText: error,
-                errorMaxLines: 3,
-              ),
-              onSubmitted: (_) => submit(),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
-              ),
-              TextButton(onPressed: submit, child: const Text('Save')),
-            ],
-          );
-        },
+      builder: (_) => _CategoryNameDialog(
+        initial: category?.name ?? '',
+        title: category == null ? 'Add category' : 'Rename category',
+        save: (name) => category == null
+            ? controller.add(name)
+            : controller.rename(category.id, name),
       ),
     );
-    text.dispose();
+    if (done != null && context.mounted) {
+      showMessage(
+        context,
+        category == null ? 'Category added' : 'Category renamed',
+      );
+    }
   }
 
   Future<void> _toggle(BuildContext context, Category c) async {
@@ -97,7 +66,7 @@ class CategoriesScreen extends StatelessWidget {
       heroTag: 'fab-add-category',
       onPressed: () => _edit(context),
       icon: const Icon(Icons.add),
-      label: const Text('Add category'),
+      label: const FabLabel('Add category'),
     ),
     body: ListenableBuilder(
       listenable: controller,
@@ -139,5 +108,68 @@ class CategoriesScreen extends StatelessWidget {
         ],
       ),
     ),
+  );
+}
+
+/// Owns its TextEditingController so the controller lives exactly as long
+/// as the dialog (including its closing animation).
+class _CategoryNameDialog extends StatefulWidget {
+  const _CategoryNameDialog({
+    required this.initial,
+    required this.title,
+    required this.save,
+  });
+
+  final String initial;
+  final String title;
+
+  /// Returns null on success or an error message.
+  final String? Function(String name) save;
+
+  @override
+  State<_CategoryNameDialog> createState() => _CategoryNameDialogState();
+}
+
+class _CategoryNameDialogState extends State<_CategoryNameDialog> {
+  late final _text = TextEditingController(text: widget.initial);
+  String? _error;
+
+  @override
+  void dispose() {
+    _text.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final err = widget.save(_text.text);
+    if (err == null) {
+      Navigator.pop(context, 'saved');
+    } else {
+      setState(() => _error = err);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text(widget.title),
+    content: TextField(
+      controller: _text,
+      autofocus: true,
+      maxLength: maxCategoryNameLength,
+      textCapitalization: TextCapitalization.words,
+      decoration: InputDecoration(
+        labelText: 'Name',
+        errorText: _error,
+        errorMaxLines: 3,
+      ),
+      onSubmitted: (_) => _submit(),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+      TextButton(onPressed: _submit, child: const Text('Save')),
+    ],
   );
 }

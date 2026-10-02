@@ -67,35 +67,42 @@ class _AppShellState extends State<AppShell> {
         Expanded(
           child: Scaffold(
             body: IndexedStack(index: _tab, children: pages),
-            bottomNavigationBar: NavigationBar(
-              selectedIndex: _tab,
-              onDestinationSelected: (i) {
-                if (i == 1) reports.load();
-                if (i == 2) categories.load();
-                setState(() => _tab = i);
-              },
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.home_outlined),
-                  selectedIcon: Icon(Icons.home),
-                  label: 'Home',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.bar_chart_outlined),
-                  selectedIcon: Icon(Icons.bar_chart),
-                  label: 'Reports',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.category_outlined),
-                  selectedIcon: Icon(Icons.category),
-                  label: 'Categories',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.settings_outlined),
-                  selectedIcon: Icon(Icons.settings),
-                  label: 'Settings',
-                ),
-              ],
+            // Labels capped at 1.3x so "Categories" never wraps mid-word.
+            bottomNavigationBar: MediaQuery.withClampedTextScaling(
+              maxScaleFactor: 1.3,
+              child: NavigationBar(
+                selectedIndex: _tab,
+                onDestinationSelected: (i) {
+                  // A confirmation belongs to the tab it was shown on; never let
+                  // it cover the next tab's buttons (e.g. Add Expense).
+                  ScaffoldMessenger.of(context).removeCurrentSnackBar();
+                  if (i == 1) reports.load();
+                  if (i == 2) categories.load();
+                  setState(() => _tab = i);
+                },
+                destinations: const [
+                  NavigationDestination(
+                    icon: Icon(Icons.home_outlined),
+                    selectedIcon: Icon(Icons.home),
+                    label: 'Home',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.bar_chart_outlined),
+                    selectedIcon: Icon(Icons.bar_chart),
+                    label: 'Reports',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.category_outlined),
+                    selectedIcon: Icon(Icons.category),
+                    label: 'Categories',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.settings_outlined),
+                    selectedIcon: Icon(Icons.settings),
+                    label: 'Settings',
+                  ),
+                ],
+              ),
             ),
           ),
         ),
