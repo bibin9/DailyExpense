@@ -60,3 +60,5 @@ app.*.map.json
 *.bak
 /android/local.properties
 /tool/icon/__pycache__/
+
+/dist/

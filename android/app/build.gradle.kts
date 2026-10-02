@@ -14,6 +14,12 @@ val keyProperties = Properties().apply {
     if (f.exists()) f.inputStream().use { load(it) }
 }
 val hasReleaseKey = keyProperties.getProperty("storeFile") != null
+// Passwords are normally NOT stored on disk: tool/android/build_release.ps1
+// asks for them and passes DET_STORE_PASSWORD to this build only.
+val releaseStorePassword: String? =
+    keyProperties.getProperty("storePassword") ?: System.getenv("DET_STORE_PASSWORD")
+val releaseKeyPassword: String? =
+    keyProperties.getProperty("keyPassword") ?: System.getenv("DET_KEY_PASSWORD") ?: releaseStorePassword
 val allowDebugSigning =
     (project.findProperty("allowDebugSigningForRelease") as String?) == "true"
 
@@ -40,9 +46,9 @@ android {
         if (hasReleaseKey) {
             create("release") {
                 storeFile = file(keyProperties.getProperty("storeFile"))
-                storePassword = keyProperties.getProperty("storePassword")
+                storePassword = releaseStorePassword
                 keyAlias = keyProperties.getProperty("keyAlias")
-                keyPassword = keyProperties.getProperty("keyPassword")
+                keyPassword = releaseKeyPassword
             }
         }
     }
@@ -60,6 +66,12 @@ android {
 
 gradle.taskGraph.whenReady {
     val wantsRelease = allTasks.any { it.name.contains("Release") && it.project == project }
+    if (wantsRelease && hasReleaseKey && releaseStorePassword.isNullOrEmpty()) {
+        throw GradleException(
+            "Keystore password not provided: build with tool/android/build_release.ps1 " +
+                "(it asks for the password) or set DET_STORE_PASSWORD for this build.",
+        )
+    }
     if (wantsRelease && !hasReleaseKey && !allowDebugSigning) {
         throw GradleException(
             "Release signing key missing: create android/key.properties (see docs/ANDROID.md). " +

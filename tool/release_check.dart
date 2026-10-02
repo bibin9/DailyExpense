@@ -6,7 +6,7 @@
 //
 // Fails (exit 1) if the release APK:
 //  * requests INTERNET or ACCESS_NETWORK_STATE,
-//  * is debuggable or allows backup,
+//  * is debuggable or allows backup, or is signed with the debug key,
 //  * lacks the backup/data-extraction rules,
 //  * contains the development-bypass marker text (bypass not compiled out),
 //  * or the client config is incomplete / requests the dev bypass / uses the
@@ -98,6 +98,25 @@ void _checkApk(File apk) {
     }
   }
   check(aapt2 != null, 'aapt2 found (set ANDROID_HOME)');
+  if (aapt2 != null) {
+    final dir = File(aapt2).parent.path;
+    final apksigner =
+        '$dir${Platform.pathSeparator}apksigner${Platform.isWindows ? '.bat' : ''}';
+    final r = Process.runSync(apksigner, [
+      'verify',
+      '--print-certs',
+      apk.path,
+    ], runInShell: Platform.isWindows);
+    final out = '${r.stdout}';
+    check(r.exitCode == 0, 'APK signature verifies (apksigner)');
+    check(
+      !out.contains('CN=Android Debug'),
+      'signed with the release key, not the Android debug key',
+    );
+    final sha = RegExp(r'Signer #1 certificate SHA-256 digest: ([0-9a-f]+)')
+        .firstMatch(out);
+    if (sha != null) stdout.writeln('INFO  signer SHA-256 ${sha.group(1)}');
+  }
   if (aapt2 != null) {
     final r = Process.runSync(aapt2, [
       'dump',

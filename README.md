@@ -90,6 +90,7 @@ Same app id and signing key for all clients; each client has its own issuer key,
 ## Documentation
 
 - [docs/ANDROID.md](docs/ANDROID.md) — build, signing, install, Android developer verification
+- [docs/PHONE_TESTING.md](docs/PHONE_TESTING.md) — install on a phone, activate it, 23-step test script
 - [docs/IOS_MAC.md](docs/IOS_MAC.md) — exact Mac/Xcode steps, Ad Hoc pilot, ongoing distribution
 - [docs/ACTIVATION.md](docs/ACTIVATION.md) — admin utility, key formats, procedures, limits
 - [docs/SECURITY_PRIVACY.md](docs/SECURITY_PRIVACY.md) — what is protected and what is not

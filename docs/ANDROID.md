@@ -29,41 +29,31 @@ adb install -r build/app/outputs/flutter-apk/app-debug.apk
 
 ## Release signing (one-time setup — keep this key forever)
 
-Every future update **must** use the same app id and the same signing key. If the key is lost, users cannot update; they must uninstall (losing all records) and install a newly signed app.
+Every future update **must** use the same app id and the same signing key. If the key or its password is lost, users cannot update; they would have to uninstall (losing all records) and install a newly signed app.
 
-1. Create the upload/signing key **outside the repository** (choose your own strong passwords):
+Create it once:
 
-   ```bash
-   keytool -genkeypair -v -keystore C:\Users\<you>\.bcr-det\signing\bcr-release.jks -storetype JKS -keyalg RSA -keysize 4096 -validity 10000 -alias bcr-release
-   ```
-
-2. Create `android/key.properties` (git-ignored):
-
-   ```properties
-   storeFile=C:\\Users\\<you>\\.bcr-det\\signing\\bcr-release.jks
-   storePassword=<store password>
-   keyAlias=bcr-release
-   keyPassword=<key password>
-   ```
-
-3. Back up the `.jks` file and both passwords offline (two separate safe places). Record the certificate SHA-256 (`keytool -list -v -keystore …`) — you need it for developer verification.
-
-Without `key.properties` a release build **fails on purpose**. For a local release check only, you can pass `-PallowDebugSigningForRelease=true` (debug-signed; never distribute that APK).
-
-## Release build + gate
-
-```bash
-flutter build apk --release --dart-define-from-file=config/clients/insideout-casa.json
-dart run tool/release_check.dart --apk build/app/outputs/flutter-apk/app-release.apk --config config/clients/insideout-casa.json
+```powershell
+powershell -ExecutionPolicy Bypass -File tool\android\create_release_key.ps1
 ```
 
-The release check fails if the APK requests `INTERNET`/`ACCESS_NETWORK_STATE`, is debuggable, allows backup, lacks backup/data-extraction rules, still contains development-bypass code, or if the config is incomplete or is the dev client.
+- You type the password yourself, hidden. It is never stored in the project.
+- The keystore goes to `%USERPROFILE%\.bcr-det\signing\bcr-release.keystore`: PKCS12, RSA 4096, valid about 27 years, owner `CN=BCR (BibinCutRiver), O=BCR, C=AE`.
+- `android/key.properties` (git-ignored) gets only the keystore path and alias.
+- The script prints the certificate SHA-256. Keep it for Android developer verification.
+- It refuses to overwrite an existing keystore.
 
-To inspect the merged manifest yourself:
+Then back up the keystore file to two safe offline places and store the password separately.
 
-```bash
-%ANDROID_HOME%\build-tools\36.0.0\aapt2 dump permissions build\app\outputs\flutter-apk\app-release.apk
+## Signed release build (each release)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tool\android\build_release.ps1 -Client insideout-casa
 ```
+
+The script asks for the keystore password and builds. It then runs the release gate, which now also checks that the APK is signed with your release key and not the debug key. The result is copied to `dist\insideout-casa\DailyExpenseTracker-insideout-casa-<version>.apk` (git-ignored).
+
+Without `key.properties` a release build **fails on purpose**. If a key exists but no password is supplied, it also fails. For a local check only, `-P allowDebugSigningForRelease=true` builds a debug-signed APK; the release gate rejects that APK.
 
 ## Private distribution of the signed APK
 
