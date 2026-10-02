@@ -1,0 +1,98 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:math';
+
+import 'package:bcr_activation/bcr_activation.dart';
+import 'package:det_admin/det_admin.dart';
+import 'package:test/test.dart';
+
+void main() {
+  late Directory dir;
+  late StringBuffer out;
+  late Admin admin;
+  final now = DateTime.utc(2026, 10, 2, 9);
+
+  setUp(() {
+    dir = Directory.systemTemp.createTempSync('det_admin_test');
+    out = StringBuffer();
+    admin = Admin(
+      out: out,
+      env: {'BCR_DET_ISSUER_DIR': dir.path},
+      now: () => now,
+    );
+  });
+  tearDown(() => dir.deleteSync(recursive: true));
+
+  String requestFor(P256KeyPair device, [String client = 'insideout-casa']) =>
+      ActivationRequest(
+        clientId: client,
+        fingerprint: installationFingerprint(device.spki),
+      ).encode();
+
+  test('init, write-config, sign and verify end to end', () {
+    expect(admin.run(['init-issuer', '--client', 'insideout-casa']), 0);
+    final cfgPath = '${dir.path}/cfg.json';
+    expect(
+      admin.run([
+        'write-config', '--client', 'insideout-casa', //
+        '--name', 'InsideOut Casa', '--out', cfgPath,
+      ]),
+      0,
+    );
+    final cfg = jsonDecode(File(cfgPath).readAsStringSync()) as Map;
+    expect(cfg['DET_CLIENT_NAME'], 'InsideOut Casa');
+    expect(cfg.toString(), isNot(contains('PRIVATE')));
+
+    final device = P256KeyPair.generate(Random(1));
+    out.clear();
+    expect(
+      admin.run([
+        'sign', '--client', 'insideout-casa', //
+        '--request', requestFor(device), '--label', 'Driver 1',
+      ]),
+      0,
+    );
+    final token = out
+        .toString()
+        .split('\n')
+        .firstWhere((l) => l.split('.').length == 3 && l.length > 100);
+    final check = verifyActivationToken(
+      token: token,
+      issuerPublicKey: base64.decode(cfg['DET_ISSUER_PUBLIC_KEY'] as String),
+      expectedClientId: 'insideout-casa',
+      deviceFingerprint: installationFingerprint(device.spki),
+      now: now,
+    );
+    expect(check.status, ActivationStatus.valid);
+    expect(check.claims!.label, 'Driver 1');
+    expect(
+      File('${dir.path}/insideout-casa.issued.csv').readAsStringSync(),
+      contains(installationFingerprint(device.spki)),
+    );
+
+    expect(
+      admin.run(['verify', '--client', 'insideout-casa', '--token', token]),
+      0,
+    );
+  });
+
+  test('refuses to overwrite an existing issuer key', () {
+    admin.run(['init-issuer', '--client', 'acme-co']);
+    expect(
+      () => admin.run(['init-issuer', '--client', 'acme-co']),
+      throwsA(isA<CliException>()),
+    );
+  });
+
+  test('refuses to sign a request made for another client build', () {
+    admin.run(['init-issuer', '--client', 'acme-co']);
+    final device = P256KeyPair.generate(Random(2));
+    expect(
+      () => admin.run([
+        'sign', '--client', 'acme-co', //
+        '--request', requestFor(device, 'insideout-casa'),
+      ]),
+      throwsA(isA<CliException>()),
+    );
+  });
+}

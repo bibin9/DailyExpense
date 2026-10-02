@@ -1,0 +1,20 @@
+name: det_admin
+description: >-
+  Local administrator utility for Daily Expense Tracker (a BCR product):
+  creates issuer keys and signs offline activation requests.
+publish_to: 'none'
+version: 1.0.0
+
+environment:
+  sdk: ^3.13.5
+
+dependencies:
+  bcr_activation:
+    path: ../packages/bcr_activation
+
+dev_dependencies:
+  test: any
+  lints: any
+
+executables:
+  det_admin: det_admin

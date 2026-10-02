@@ -1,0 +1,4 @@
+tags:
+  perf:
+    # 10,000-record size/speed measurement; writes build/perf_report.txt.
+    timeout: 5x

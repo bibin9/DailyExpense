@@ -1,0 +1,42 @@
+name: daily_expense_tracker
+description: "Daily Expense Tracker - offline personal expense log. A BCR product."
+publish_to: 'none'
+
+# version: <versionName>+<versionCode/CFBundleVersion>. The build number must
+# increase for every release you install over an earlier one.
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.5
+
+# Versions below were resolved by `flutter pub add` against Flutter 3.47.6 /
+# Dart 3.13.5 on 2026-10-02 and are pinned by the committed pubspec.lock.
+dependencies:
+  flutter:
+    sdk: flutter
+  characters: any # version is pinned by the Flutter SDK
+  sqlite3: ^3.7.0
+  flutter_secure_storage: ^11.2.0
+  local_auth: ^3.0.2
+  path_provider: ^2.1.6
+  pointycastle: ^4.0.0
+  bcr_activation:
+    path: packages/bcr_activation
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+# Encryption: use the SQLCipher build of SQLite bundled by package:sqlite3.
+# The app refuses to start if `PRAGMA cipher_version` is empty, so a build
+# that silently fell back to plain SQLite can never open the database.
+hooks:
+  user_defines:
+    sqlite3:
+      source: sqlcipher
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/licenses/
