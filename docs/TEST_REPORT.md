@@ -93,3 +93,13 @@ iPhone (after Mac build):
 7. Network: confirm no traffic (e.g. Charles/Proxyman with no app requests).
 
 Record results (device model, OS version, pass/fail, notes) in this file before any production rollout.
+
+## Device results (owner's Android phone)
+
+| Date | Build | Check | Result |
+|---|---|---|---|
+| 2026-10-02 | 1.0.0+1 (release-signed) | Install by APK, unlock, activation with admin-signed code, basic use | PASS (owner) |
+| 2026-10-02 | 1.0.2+3 (release-signed) | Installed as an update over the earlier build; data and activation kept | PASS (owner) |
+| 2026-10-02 | 1.0.2+3 | Settings → Create backup → saved via system picker | PASS (owner) |
+| — | 1.0.2+3 | Restore on a second phone | Pending |
+| — | 1.0.2+3 | Monkey stress, logcat privacy scan, kill/restart, network counters (needs USB debugging) | Pending |
