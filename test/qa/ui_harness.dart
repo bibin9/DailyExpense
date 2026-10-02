@@ -21,8 +21,10 @@ class UiHarness {
   late final AppGateController gate;
   late final FakeAuth auth;
   late final FixedClock clock;
+  late final FakePlatform platform;
 
   static bool _fontLoaded = false;
+  static int _seed = 1;
 
   /// Tests normally render with a block font whose glyphs are ~2x wider
   /// than real text. Load a real font under the theme's family name so
@@ -68,7 +70,7 @@ class UiHarness {
         clientName: 'InsideOut Casa',
         issuerPublicKeyBase64: base64.encode(issuer.spki),
       ),
-      platform: FakePlatform(),
+      platform: platform = FakePlatform(seed: _seed++),
       keyStore: MemoryKeyStore(),
       auth: auth,
       clock: clock,

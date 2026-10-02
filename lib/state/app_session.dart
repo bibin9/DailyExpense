@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../core/capture.dart';
+import '../data/backup_service.dart';
 import '../data/category_repository.dart';
 import '../data/database.dart';
 import '../data/expense_repository.dart';
@@ -26,6 +27,7 @@ class AppSession {
   final ExpenseRepository expenses;
   final CategoryRepository categories;
   final MetaRepository meta;
+  late final BackupService backups = BackupService(db);
 
   /// Bumped after every committed change so lists and reports refresh.
   final ValueNotifier<int> revision = ValueNotifier(0);

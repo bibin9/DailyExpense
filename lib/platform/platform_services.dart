@@ -28,6 +28,18 @@ abstract interface class PlatformServices {
 
   /// Android FLAG_SECURE (blocks screenshots and recent-apps preview).
   Future<void> setSecureScreen(bool secure);
+
+  /// Shows the system "save as" sheet (Android document picker / iOS Files)
+  /// and copies [sourcePath] to the place the user chooses. Returns false if
+  /// the user cancelled. The app itself never uploads anything.
+  Future<bool> saveFileAs({
+    required String sourcePath,
+    required String fileName,
+  });
+
+  /// Shows the system file picker and copies the chosen file to
+  /// [destinationPath]. Returns false if the user cancelled.
+  Future<bool> pickFile({required String destinationPath});
 }
 
 class MethodChannelPlatformServices implements PlatformServices {
@@ -66,4 +78,20 @@ class MethodChannelPlatformServices implements PlatformServices {
   @override
   Future<void> setSecureScreen(bool secure) =>
       _channel.invokeMethod<void>('window.setSecure', secure);
+
+  @override
+  Future<bool> saveFileAs({
+    required String sourcePath,
+    required String fileName,
+  }) async =>
+      (await _channel.invokeMethod<bool>('file.saveAs', {
+        'source': sourcePath,
+        'name': fileName,
+      })) ??
+      false;
+
+  @override
+  Future<bool> pickFile({required String destinationPath}) async =>
+      (await _channel.invokeMethod<bool>('file.pick', destinationPath)) ??
+      false;
 }

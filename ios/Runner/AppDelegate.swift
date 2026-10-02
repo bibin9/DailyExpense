@@ -1,6 +1,7 @@
 import Flutter
 import Security
 import UIKit
+import UniformTypeIdentifiers
 
 // Daily Expense Tracker — BCR.
 // UNVERIFIED ON DEVICE: written on Windows; must be compiled and tested on a
@@ -59,6 +60,18 @@ final class DetPlatformBridge {
         result(excludeFromBackup(call.arguments as? String))
       case "storage.freeBytes":
         result(freeBytes(call.arguments as? String))
+      case "file.saveAs":
+        guard let args = call.arguments as? [String: Any],
+              let source = args["source"] as? String,
+              let name = args["name"] as? String else {
+          result(FlutterError(code: "native_error", message: "bad_args", details: nil)); return
+        }
+        saveAs(source: source, name: name, result: result)
+      case "file.pick":
+        guard let dest = call.arguments as? String else {
+          result(FlutterError(code: "native_error", message: "bad_args", details: nil)); return
+        }
+        pick(destination: dest, result: result)
       case "window.setSecure":
         // iOS has no universal screenshot-blocking API; the app-switcher
         // snapshot is covered in SceneDelegate instead.
@@ -68,6 +81,78 @@ final class DetPlatformBridge {
       }
     }
     channel = ch
+  }
+
+  // MARK: Files sheet (backup save / restore pick). The user chooses the
+  // place; the app only copies bytes and never uploads anything.
+
+  private static var pickerDelegate: DocumentPickerDelegate?
+
+  private static func topViewController() -> UIViewController? {
+    let window = UIApplication.shared.connectedScenes
+      .compactMap { $0 as? UIWindowScene }
+      .flatMap { $0.windows }
+      .first { $0.isKeyWindow }
+    var top = window?.rootViewController
+    while let presented = top?.presentedViewController { top = presented }
+    return top
+  }
+
+  private static func saveAs(source: String, name: String, result: @escaping FlutterResult) {
+    guard pickerDelegate == nil, let top = topViewController() else {
+      result(FlutterError(code: "busy", message: "picker_unavailable", details: nil)); return
+    }
+    let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(name)
+    try? FileManager.default.removeItem(at: tmp)
+    do {
+      try FileManager.default.copyItem(at: URL(fileURLWithPath: source), to: tmp)
+    } catch {
+      result(FlutterError(code: "native_error", message: "copy_failed", details: nil)); return
+    }
+    let picker = UIDocumentPickerViewController(forExporting: [tmp], asCopy: true)
+    let delegate = DocumentPickerDelegate(
+      onPick: { _ in
+        try? FileManager.default.removeItem(at: tmp)
+        pickerDelegate = nil
+        result(true)
+      },
+      onCancel: {
+        try? FileManager.default.removeItem(at: tmp)
+        pickerDelegate = nil
+        result(false)
+      })
+    pickerDelegate = delegate
+    picker.delegate = delegate
+    top.present(picker, animated: true)
+  }
+
+  private static func pick(destination: String, result: @escaping FlutterResult) {
+    guard pickerDelegate == nil, let top = topViewController() else {
+      result(FlutterError(code: "busy", message: "picker_unavailable", details: nil)); return
+    }
+    let picker = UIDocumentPickerViewController(forOpeningContentTypes: [UTType.data], asCopy: true)
+    let delegate = DocumentPickerDelegate(
+      onPick: { urls in
+        pickerDelegate = nil
+        guard let url = urls.first else { result(false); return }
+        let dest = URL(fileURLWithPath: destination)
+        try? FileManager.default.removeItem(at: dest)
+        do {
+          let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+          if size > 512 * 1024 * 1024 { throw NSError(domain: "det", code: 1) }
+          try FileManager.default.copyItem(at: url, to: dest)
+          result(true)
+        } catch {
+          result(FlutterError(code: "native_error", message: "copy_failed", details: nil))
+        }
+      },
+      onCancel: {
+        pickerDelegate = nil
+        result(false)
+      })
+    pickerDelegate = delegate
+    picker.delegate = delegate
+    top.present(picker, animated: true)
   }
 
   private static func keyQuery() -> [String: Any] {
@@ -172,5 +257,23 @@ final class DetPlatformBridge {
     let url = URL(fileURLWithPath: path ?? NSHomeDirectory())
     let v = try? url.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
     return v?.volumeAvailableCapacityForImportantUsage
+  }
+}
+
+final class DocumentPickerDelegate: NSObject, UIDocumentPickerDelegate {
+  private let onPick: ([URL]) -> Void
+  private let onCancel: () -> Void
+
+  init(onPick: @escaping ([URL]) -> Void, onCancel: @escaping () -> Void) {
+    self.onPick = onPick
+    self.onCancel = onCancel
+  }
+
+  func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+    onPick(urls)
+  }
+
+  func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+    onCancel()
   }
 }

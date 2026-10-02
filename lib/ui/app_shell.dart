@@ -27,6 +27,25 @@ class _AppShellState extends State<AppShell> {
   int _tab = 0;
 
   @override
+  void initState() {
+    super.initState();
+    final notice = widget.gate.pendingNotice;
+    if (notice != null) {
+      widget.gate.pendingNotice = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(notice),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      });
+    }
+  }
+
+  @override
   void dispose() {
     home.dispose();
     reports.dispose();

@@ -10,6 +10,7 @@
 - DB key: Keychain `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`, `synchronizable = false` (via flutter_secure_storage 11.2.0).
 - Installation key: P-256 in the Secure Enclave (device-only Keychain fallback, used on the simulator).
 - Data folder `Library/Application Support/det_data` and each file in it get `isExcludedFromBackup = true` on every launch, so the flag is re-applied after SQLite or a migration replaces a file.
+- Backup save/restore uses the Files sheet (`UIDocumentPickerViewController`, export/open as copy). Also unverified until built on a Mac.
 - App-switcher snapshot is covered while the app is inactive. **iOS has no general API to block screenshots**, and the app doesn't claim to.
 
 ## Exact steps on a Mac

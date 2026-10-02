@@ -118,7 +118,7 @@ void main() {
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
     expect(
-      find.textContaining('your records stay only on this phone'),
+      find.textContaining('your records are kept only on this phone'),
       findsOneWidget,
     );
     await tester.scrollUntilVisible(

@@ -1,5 +1,7 @@
 package com.bcr.dailyexpense
 
+import android.app.Activity
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.os.StatFs
@@ -11,6 +13,7 @@ import android.view.WindowManager
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.io.File
 import java.security.KeyFactory
 import java.security.KeyPairGenerator
 import java.security.KeyStore
@@ -57,6 +60,26 @@ class MainActivity : FlutterFragmentActivity() {
                         "storage.freeBytes" -> result.success(
                             StatFs(call.arguments as String).availableBytes,
                         )
+                        "file.saveAs" -> {
+                            val args = call.arguments as Map<*, *>
+                            startDocumentRequest(
+                                result,
+                                REQ_SAVE,
+                                args["source"] as String,
+                                Intent(Intent.ACTION_CREATE_DOCUMENT)
+                                    .addCategory(Intent.CATEGORY_OPENABLE)
+                                    .setType("application/octet-stream")
+                                    .putExtra(Intent.EXTRA_TITLE, args["name"] as String),
+                            )
+                        }
+                        "file.pick" -> startDocumentRequest(
+                            result,
+                            REQ_PICK,
+                            call.arguments as String,
+                            Intent(Intent.ACTION_OPEN_DOCUMENT)
+                                .addCategory(Intent.CATEGORY_OPENABLE)
+                                .setType("*/*"),
+                        )
                         "window.setSecure" -> {
                             if (call.arguments as Boolean) {
                                 window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
@@ -72,6 +95,70 @@ class MainActivity : FlutterFragmentActivity() {
                     result.error("native_error", e.javaClass.simpleName, null)
                 }
             }
+    }
+
+    // --- System document pickers (backup save / restore pick) -------------
+    // Uses the Storage Access Framework: the user chooses the place, the
+    // app only copies bytes. No storage or network permission is needed.
+
+    private var pendingResult: MethodChannel.Result? = null
+    private var pendingPath: String? = null
+
+    private fun startDocumentRequest(
+        result: MethodChannel.Result,
+        requestCode: Int,
+        path: String,
+        intent: Intent,
+    ) {
+        if (pendingResult != null) {
+            result.error("busy", "picker_already_open", null)
+            return
+        }
+        pendingResult = result
+        pendingPath = path
+        @Suppress("DEPRECATION")
+        startActivityForResult(intent, requestCode)
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        @Suppress("DEPRECATION")
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQ_SAVE && requestCode != REQ_PICK) return
+        val result = pendingResult ?: return
+        val path = pendingPath
+        pendingResult = null
+        pendingPath = null
+        val uri = data?.data
+        if (resultCode != Activity.RESULT_OK || uri == null || path == null) {
+            result.success(false)
+            return
+        }
+        try {
+            if (requestCode == REQ_SAVE) {
+                contentResolver.openOutputStream(uri, "wt")!!.use { out ->
+                    File(path).inputStream().use { it.copyTo(out) }
+                }
+            } else {
+                contentResolver.openInputStream(uri)!!.use { input ->
+                    File(path).outputStream().use { out ->
+                        val buffer = ByteArray(64 * 1024)
+                        var total = 0L
+                        while (true) {
+                            val n = input.read(buffer)
+                            if (n < 0) break
+                            total += n
+                            if (total > MAX_IMPORT_BYTES) throw IllegalStateException("too_large")
+                            out.write(buffer, 0, n)
+                        }
+                    }
+                }
+            }
+            result.success(true)
+        } catch (e: Exception) {
+            if (requestCode == REQ_PICK) File(path).delete()
+            result.error("native_error", e.javaClass.simpleName, null)
+        }
     }
 
     private fun keyStore(): KeyStore = KeyStore.getInstance(KEYSTORE).apply { load(null) }
@@ -139,5 +226,8 @@ class MainActivity : FlutterFragmentActivity() {
         private const val CHANNEL = "com.bcr.dailyexpense/platform"
         private const val KEYSTORE = "AndroidKeyStore"
         private const val ALIAS = "det_installation_key_v1"
+        private const val REQ_SAVE = 4101
+        private const val REQ_PICK = 4102
+        private const val MAX_IMPORT_BYTES = 512L * 1024 * 1024
     }
 }

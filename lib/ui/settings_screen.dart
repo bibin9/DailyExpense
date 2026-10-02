@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 
 import '../config/app_config.dart';
 import '../core/local_date.dart';
+import '../data/backup_service.dart';
 import '../security/activation_service.dart';
 import '../state/app_gate_controller.dart';
+import 'backup_ui.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -59,17 +61,69 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           _Section(
-            title: 'Important: your records stay only on this phone',
+            title: 'Important: your records are kept only on this phone',
             icon: Icons.warning_amber_rounded,
             highlight: true,
             children: const [
               Text(
-                'There is no cloud copy, sync or export in this version. If the '
-                'phone is lost, reset, or the app is removed or its data '
-                'cleared, the records are gone permanently and cannot be '
-                'recovered — not even by your administrator or BCR.',
+                'There is no cloud copy or sync. If the phone is lost, reset, '
+                'or the app is removed or its data cleared, records since your '
+                'last backup are gone permanently — not even your '
+                'administrator or BCR can recover them. Make a backup '
+                'regularly and keep the file somewhere other than this phone.',
               ),
             ],
+          ),
+          ListenableBuilder(
+            listenable: s.revision,
+            builder: (context, _) {
+              final last = int.tryParse(s.meta.read(metaLastBackupAt) ?? '');
+              final empty = s.expenses.count() == 0;
+              return _Section(
+                title: 'Backup and moving to a new phone',
+                icon: Icons.backup_outlined,
+                children: [
+                  _kv(
+                    'Last backup',
+                    last == null
+                        ? 'Never'
+                        : formatDateLong(
+                            LocalDate.fromDateTime(
+                              DateTime.fromMillisecondsSinceEpoch(last),
+                            ),
+                          ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'A backup is one encrypted file protected by a password '
+                    'you choose. Save it to Google Drive, a computer or a USB '
+                    'stick. On a new phone, install the app, activate it, '
+                    'then use Restore.',
+                  ),
+                  const SizedBox(height: 8),
+                  FilledButton.icon(
+                    onPressed: () => startCreateBackup(context, gate),
+                    icon: const Icon(Icons.save_alt),
+                    label: const Text('Create backup'),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: empty ? () => startRestore(context, gate) : null,
+                    icon: const Icon(Icons.restore),
+                    label: const Text('Restore from backup'),
+                  ),
+                  if (!empty)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 6),
+                      child: Text(
+                        'Restore is available only on a phone with no '
+                        'expenses yet (for example, a new phone).',
+                        style: TextStyle(color: AppColors.muted, fontSize: 13),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
           _Section(
             title: 'App lock',

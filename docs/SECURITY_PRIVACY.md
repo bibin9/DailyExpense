@@ -23,6 +23,23 @@
   - There are no iCloud or CloudKit capabilities.
 - **Honest limit:** these settings follow the platforms' documented behaviour, but the app can't guarantee what every OEM tool, forensic tool or future OS version does. This must be checked on real devices (TEST_REPORT).
 
+## Backup files (added in 1.0.2)
+
+- **Who:** any activated user, from Settings or the monthly reminder on Home.
+- **Format:** a SQLCipher database encrypted with a key derived from the user's password, using SQLCipher 4 defaults:
+  - PBKDF2-HMAC-SHA512 with 256,000 iterations and a random salt per file
+  - AES-256 encryption with an HMAC-SHA512 check on every page
+
+  The minimum password length is 8 characters. Forget the password and nobody can open the backup.
+- **Contents:** all expenses, categories and capture details. **Never** the activation token or the device's database key.
+- **Where it goes:** the user picks the place with the phone's own picker (Android Storage Access Framework, iOS Files). The app makes no network call; if the user chooses Google Drive or iCloud, that happens through the operating system. The app needs no storage permission.
+- **Restore:**
+  - Only allowed into an app with **no expenses** (the new-phone case).
+  - The file is checked first: password, format, integrity, and a version that isn't newer than the app.
+  - It is then re-encrypted with the new phone's own key into a separate file, opened and verified, and swapped in all-or-nothing. If the swap fails, the original data is put back.
+  - The new phone keeps its own activation.
+- **Risk accepted by the product owner (2 Oct 2026):** expense data can now leave the phone as an encrypted file. A weak or shared password weakens that protection. Keep backup files somewhere other than the phone.
+
 ## Network
 
 - No app code makes network calls (enforced by `test/privacy_static_test.dart`).

@@ -63,3 +63,26 @@ The original planning allowance (2–5 KB per expense) is ~10× higher than meas
 ## Note for the installed phone
 
 The APK installed on the owner's phone was built **before** these fixes. Rebuild with `tool\android\build_release.ps1` and install with `adb install -r` (keeps data and activation).
+
+## Addendum — backup and new-phone transfer (1.0.2)
+
+Decisions (product owner, 2 Oct 2026):
+- Every user may back up.
+- Restore is only allowed into an empty app.
+- A monthly reminder is shown.
+- The password minimum is 8 characters.
+
+| Test | Result |
+|---|---|
+| Round trip: every expense, category (incl. turned-off), capture time, timezone and creation time restored exactly on a phone with a different key | PASS |
+| Backup file has no readable text; activation token never included | PASS |
+| Wrong password, random file, empty file, device database used as a "backup" | Refused |
+| Tampered backup (1 flipped byte) | Detected; nothing half-restored |
+| Passwords with quotes, SQL-like text, Arabic | PASS |
+| Restore refused when the phone already has records (screen and controller) | PASS |
+| Wrong password at restore leaves no leftover files | PASS |
+| Full UI move: old phone backs up → new phone, separately activated, restores via Home → records, totals, own activation kept | PASS |
+| Cancelling the save sheet leaves no temporary file | PASS |
+| Monthly reminder after 30 days; "Later" snoozes 7 days | PASS |
+
+Automated total after this change: **148 app + 15 activation + 3 admin = 166 tests, all passing.** The Android native picker code compiles. The iOS picker code is unverified until it is built on a Mac.

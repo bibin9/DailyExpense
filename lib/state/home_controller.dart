@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../core/local_date.dart';
+import '../data/backup_service.dart';
 import '../data/expense_repository.dart';
 import '../domain/models.dart';
 import 'app_session.dart';
@@ -21,6 +22,7 @@ class HomeController extends ChangeNotifier {
   final List<Expense> items = [];
   bool hasMore = false;
   String? error;
+  bool showBackupReminder = false;
 
   void refresh() {
     try {
@@ -31,6 +33,17 @@ class HomeController extends ChangeNotifier {
         ..clear()
         ..addAll(first);
       hasMore = first.length == pageSize;
+      showBackupReminder = shouldRemindBackup(
+        expenseCount: first.length,
+        lastBackupUtcMs: int.tryParse(
+          session.meta.read(metaLastBackupAt) ?? '',
+        ),
+        firstExpenseCreatedUtcMs: session.expenses.firstCreatedAtUtcMs(),
+        snoozedUntilUtcMs: int.tryParse(
+          session.meta.read(metaBackupReminderSnoozedUntil) ?? '',
+        ),
+        nowUtcMs: session.nowUtcMs(),
+      );
       error = null;
     } on Object {
       error = 'Could not load your expenses. Please restart the app.';
@@ -47,6 +60,16 @@ class HomeController extends ChangeNotifier {
     );
     items.addAll(next);
     hasMore = next.length == pageSize;
+    notifyListeners();
+  }
+
+  /// "Later" on the reminder: hide it for a week.
+  void snoozeBackupReminder() {
+    session.meta.write(
+      metaBackupReminderSnoozedUntil,
+      '${session.nowUtcMs() + const Duration(days: 7).inMilliseconds}',
+    );
+    showBackupReminder = false;
     notifyListeners();
   }
 

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -56,6 +57,33 @@ class FakePlatform implements PlatformServices {
 
   @override
   Future<void> setSecureScreen(bool secure) async {}
+
+  /// Where "save as" copies to (null = user cancels).
+  String? saveDestination;
+  final saved = <String>[];
+
+  /// File the user "picks" (null = user cancels).
+  String? pickSource;
+
+  @override
+  Future<bool> saveFileAs({
+    required String sourcePath,
+    required String fileName,
+  }) async {
+    final dest = saveDestination;
+    if (dest == null) return false;
+    File(sourcePath).copySync(dest);
+    saved.add(fileName);
+    return true;
+  }
+
+  @override
+  Future<bool> pickFile({required String destinationPath}) async {
+    final src = pickSource;
+    if (src == null) return false;
+    File(src).copySync(destinationPath);
+    return true;
+  }
 }
 
 class MemoryKeyStore implements DbKeyStore {

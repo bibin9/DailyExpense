@@ -229,6 +229,13 @@ class ExpenseRepository {
     );
   }
 
+  /// Creation time of the oldest record (for the backup reminder).
+  int? firstCreatedAtUtcMs() =>
+      _db.raw
+              .select('SELECT MIN(created_at_utc_ms) AS m FROM expenses;')
+              .first['m']
+          as int?;
+
   int count() =>
       _db.raw.select('SELECT COUNT(*) AS n FROM expenses;').first['n'] as int;
 }

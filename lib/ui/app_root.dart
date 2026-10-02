@@ -59,7 +59,8 @@ class _DailyExpenseAppState extends State<DailyExpenseApp> {
     GatePhase.locked => LockScreen(gate: g),
     GatePhase.startupError => StartupErrorScreen(gate: g),
     GatePhase.needsActivation => ActivationScreen(gate: g),
-    GatePhase.ready => AppShell(gate: g),
+    // Keyed by session so a restore rebuilds every screen on the new data.
+    GatePhase.ready => AppShell(key: ObjectKey(g.session), gate: g),
   };
 }
 

@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:bcr_activation/bcr_activation.dart';
 import 'package:daily_expense_tracker/config/app_config.dart';
+import 'package:daily_expense_tracker/data/backup_service.dart';
 import 'package:daily_expense_tracker/data/failures.dart';
 import 'package:daily_expense_tracker/domain/models.dart';
 import 'package:daily_expense_tracker/platform/storage_layout.dart';
@@ -174,6 +175,65 @@ void main() {
     auth.next = AuthOutcome.success;
     await g.unlock();
     expect(g.phase, GatePhase.needsActivation);
+    g.dispose();
+  });
+
+  test(
+    'restore is refused when the phone already has records; data untouched',
+    () async {
+      final g = await activated();
+      final s = g.session!;
+      s.expenses.insert(
+        ExpenseDraft(
+          categoryId: s.categories.active().first.id,
+          amountFils: 700,
+          remarks: null,
+        ),
+        dubai(2026, 10, 2),
+        nowUtcMs: 1,
+      );
+      final backup = '${root.path}/b.$backupFileExtension';
+      s.backups.createBackup(
+        outPath: backup,
+        password: 'password1',
+        nowUtcMs: 1,
+      );
+      await expectLater(
+        g.restoreFromBackup(backup, 'password1'),
+        throwsA(
+          isA<AppFailure>().having(
+            (f) => f.userMessage,
+            'msg',
+            contains('no expenses yet'),
+          ),
+        ),
+      );
+      expect(g.session!.expenses.count(), 1);
+      expect(g.phase, GatePhase.ready);
+      g.dispose();
+    },
+  );
+
+  test('restore with a wrong password changes nothing', () async {
+    final g = await activated();
+    final backup = '${root.path}/b.$backupFileExtension';
+    g.session!.backups.createBackup(
+      outPath: backup,
+      password: 'password1',
+      nowUtcMs: 1,
+    );
+    await expectLater(
+      g.restoreFromBackup(backup, 'password2'),
+      throwsA(isA<AppFailure>()),
+    );
+    expect(g.phase, GatePhase.ready);
+    expect(
+      Directory('${root.path}/det_data')
+          .listSync()
+          .map((f) => f.path)
+          .where((p) => p.contains('restoring') || p.contains('pre-restore')),
+      isEmpty,
+    );
     g.dispose();
   });
 

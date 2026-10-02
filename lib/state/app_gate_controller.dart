@@ -6,8 +6,10 @@ import 'package:flutter/widgets.dart';
 
 import '../config/app_config.dart';
 import '../core/capture.dart';
+import '../data/backup_service.dart';
 import '../data/database.dart';
 import '../data/failures.dart';
+import '../data/meta_repository.dart';
 import '../platform/db_key_store.dart';
 import '../platform/platform_services.dart';
 import '../platform/storage_layout.dart';
@@ -229,6 +231,108 @@ class AppGateController extends ChangeNotifier with WidgetsBindingObserver {
     final r = await activationService!.submit(token);
     if (r.ok) await refreshActivation();
     return r;
+  }
+
+  /// One-time message for the main screen (e.g. after a restore).
+  String? pendingNotice;
+
+  /// Restores a backup onto this phone. Allowed only while the phone has no
+  /// expenses (the new-phone case), so nothing can be overwritten.
+  ///
+  /// The backup is re-encrypted with this phone's own key into a separate
+  /// file, opened and checked, and only then swapped in. If anything fails
+  /// the original database is put back. This phone's activation is kept.
+  Future<BackupInfo> restoreFromBackup(
+    String backupPath,
+    String password,
+  ) async {
+    final s = session;
+    final l = layout;
+    if (s == null || l == null) {
+      throw const AppFailure(FailureKind.unknown, 'The app is not ready yet.');
+    }
+    if (s.expenses.count() > 0) {
+      throw const AppFailure(
+        FailureKind.validation,
+        'Restore is only possible on a phone that has no expenses yet.',
+      );
+    }
+    final key = await keyStore.read();
+    if (key == null) {
+      throw const AppFailure(
+        FailureKind.keyUnavailable,
+        "This phone's security key could not be read.",
+      );
+    }
+    final free = await platform.freeBytes(l.dataDir.path);
+    final needed = File(backupPath).lengthSync() * 3;
+    if (free != null && free < needed + 5 * 1024 * 1024) {
+      throw const AppFailure(
+        FailureKind.storageFull,
+        'Not enough free storage to restore. Free up some space and try again.',
+      );
+    }
+    final token = s.tokenStore.readToken();
+    final tmp = '${l.databasePath}.restoring';
+    final now = clock.now().toUtc().millisecondsSinceEpoch;
+
+    final info = BackupService.rebuildForDevice(
+      backupPath: backupPath,
+      password: password,
+      targetPath: tmp,
+      deviceKey: key,
+    );
+    // Open (applies migrations if the backup is from an older version),
+    // verify, and carry over this phone's activation.
+    try {
+      final check = AppDatabase.open(path: tmp, key: key, nowUtcMs: now);
+      try {
+        final n = check.raw
+            .select('SELECT COUNT(*) AS n FROM expenses;')
+            .first['n'];
+        if (n != info.expenseCount) {
+          throw const AppFailure(
+            FailureKind.unknown,
+            'The backup could not be verified. Nothing was changed.',
+          );
+        }
+        final meta = MetaRepository(check);
+        if (token != null) meta.write('activation_token', token);
+        meta.write(metaLastBackupAt, '$now');
+      } finally {
+        check.close();
+      }
+    } catch (_) {
+      if (File(tmp).existsSync()) File(tmp).deleteSync();
+      rethrow;
+    }
+
+    _set(GatePhase.starting);
+    s.close();
+    session = null;
+    final aside = '${l.databasePath}.pre-restore';
+    if (File(aside).existsSync()) File(aside).deleteSync();
+    File(l.databasePath).renameSync(aside);
+    File(tmp).renameSync(l.databasePath);
+    try {
+      await _openSession();
+    } catch (_) {
+      // Put the original back exactly as it was.
+      session?.close();
+      session = null;
+      File(l.databasePath).renameSync('$tmp.failed');
+      File(aside).renameSync(l.databasePath);
+      await _openSession();
+      if (File('$tmp.failed').existsSync()) File('$tmp.failed').deleteSync();
+      rethrow;
+    }
+    File(aside).deleteSync();
+    await _excludeFromBackup(l);
+    pendingNotice = info.expenseCount == 1
+        ? 'Restored 1 expense from your backup.'
+        : 'Restored ${info.expenseCount} expenses from your backup.';
+    notifyListeners();
+    return info;
   }
 
   void lockNow() {

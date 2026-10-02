@@ -71,6 +71,12 @@ dart run admin_cli/bin/det_admin.dart sign --client insideout-casa --label "Test
 | 22 | Uninstall, reinstall | Starts empty and asks for activation again (expected — no backup in v1) |
 | 23 | Copy the activation code to a **second** phone | Rejected: "belongs to a different phone" |
 
+| 24 | Settings → **Create backup**, password `short` | "Use at least 8 characters" |
+| 25 | Create backup with an 8+ character password → save to Downloads or Drive | "Backup saved", Last backup = today |
+| 26 | Second phone (or after uninstall/reinstall): activate, Home → **Restore a backup**, wrong password | "The password is wrong…" |
+| 27 | Right password | Preview shows count, dates and total → **Restore** → all records back, same dates/times; still activated |
+| 28 | Settings on a phone that has records | Restore is not offered (only for empty app) |
+
 Note the phone model, Android version and any problems. Add them to `docs/TEST_REPORT.md`.
 
 ## Optional: confirm no network traffic

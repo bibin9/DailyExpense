@@ -5,7 +5,7 @@ First client: **InsideOut Casa** (insideoutuae.com). Built to be licensed to oth
 
 An offline Android and iPhone app where each person records **their own** daily work expenses in AED on **their own phone** and sees daily, weekly and monthly totals. There is no server, account, cloud, sync or sharing — every installation is independent (“Option A”).
 
-> **Data-loss warning (also shown in Settings).** Records exist only on the phone. If the phone is lost, reset or replaced, or the app is removed or its data cleared, the records are gone permanently. Version 1 deliberately has no backup or export.
+> **Data-loss warning (also shown in Settings).** Records exist only on the phone. If the phone is lost, reset or replaced, or the app is removed or its data cleared, anything recorded since the last **backup** is gone permanently. Users make password-protected backup files themselves (Settings → Create backup); the app reminds them monthly.
 
 ---
 
@@ -20,8 +20,9 @@ An offline Android and iPhone app where each person records **their own** daily 
 | Reports | Daily (default today) · Weekly (Mon–Sun) · Monthly (calendar month) — entries newest first, count, total, per-category subtotals |
 | Security | Device unlock (biometric with PIN/passcode fallback), relock after 2 min in background, screenshot block (Android), app-switcher cover (both), no backups, no network |
 | Licensing | Offline activation per installation, bound to a hardware-protected key |
+| Backup / new phone | Settings → **Create backup**: one encrypted file (SQLCipher, user password ≥ 8 chars) saved wherever the user chooses via the phone's own file picker · new phone: activate, then **Restore** (only into an empty app) · monthly reminder on Home · activation never travels in a backup |
 
-Not included in v1 (by design): cloud, sync, shared reports, receipts/OCR, VAT, reimbursements, bank links, GPS, other currencies, CSV/PDF export, charts.
+Not included (by design): cloud, sync, shared reports, receipts/OCR, VAT, reimbursements, bank links, GPS, other currencies, CSV/PDF export, charts.
 
 ## Repository layout
 

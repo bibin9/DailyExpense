@@ -6,6 +6,8 @@ import '../core/money.dart';
 import '../domain/models.dart';
 import '../state/app_session.dart';
 import '../state/home_controller.dart';
+import 'app_scope.dart';
+import 'backup_ui.dart';
 import 'expense_form_screen.dart';
 import 'theme.dart';
 import 'widgets.dart';
@@ -81,13 +83,41 @@ class HomeScreen extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 96),
             itemCount: rows.length + 2,
             itemBuilder: (context, i) {
-              if (i == 0) return _TodayCard(controller: controller);
+              if (i == 0) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _TodayCard(controller: controller),
+                    if (controller.showBackupReminder)
+                      BackupReminderCard(
+                        onBackup: () => startCreateBackup(
+                          context,
+                          AppScope.gateOf(context),
+                        ),
+                        onLater: controller.snoozeBackupReminder,
+                      ),
+                  ],
+                );
+              }
               if (i == rows.length + 1) {
                 if (items.isEmpty) {
-                  return const EmptyState(
-                    icon: Icons.receipt_long_outlined,
-                    title: 'No expenses yet',
-                    body: 'Tap Add Expense to record your first one.',
+                  return Column(
+                    children: [
+                      const EmptyState(
+                        icon: Icons.receipt_long_outlined,
+                        title: 'No expenses yet',
+                        body: 'Tap Add Expense to record your first one.',
+                      ),
+                      TextButton.icon(
+                        onPressed: () =>
+                            startRestore(context, AppScope.gateOf(context)),
+                        icon: const Icon(Icons.restore),
+                        label: const Text(
+                          'Moving from another phone? Restore a backup',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
                   );
                 }
                 return controller.hasMore
