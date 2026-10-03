@@ -95,4 +95,59 @@ void main() {
       throwsA(isA<CliException>()),
     );
   });
+
+  test(
+    'license writes a verifiable company licence; per-device removes it',
+    () {
+      admin.run(['init-issuer', '--client', 'insideout-casa']);
+      final cfgPath = '${dir.path}/cfg.json';
+      admin.run([
+        'write-config', '--client', 'insideout-casa', //
+        '--name', 'InsideOut Casa', '--out', cfgPath,
+      ]);
+      expect(
+        admin.run([
+          'license', '--client', 'insideout-casa', //
+          '--config', cfgPath, '--until', '2027-12-31',
+        ]),
+        0,
+      );
+      final cfg = jsonDecode(File(cfgPath).readAsStringSync()) as Map;
+      final pub = base64.decode(cfg['DET_ISSUER_PUBLIC_KEY'] as String);
+      final token = cfg['DET_BUILD_LICENSE'] as String;
+      BuildLicenseStatus at(DateTime t) => verifyBuildLicense(
+        token: token,
+        issuerPublicKey: pub,
+        expectedClientId: 'insideout-casa',
+        now: t,
+      ).status;
+      // Valid all of 31 Dec in the UAE (UTC+4), expired from 1 Jan 00:00 UAE.
+      expect(at(DateTime.utc(2027, 12, 31, 19, 59)), BuildLicenseStatus.valid);
+      expect(at(DateTime.utc(2027, 12, 31, 20, 0)), BuildLicenseStatus.expired);
+      expect(cfg['DET_CLIENT_NAME'], 'InsideOut Casa'); // other keys kept
+
+      expect(
+        () => admin.run([
+          'license', '--client', 'insideout-casa', //
+          '--config', cfgPath, '--until', '2020-01-01',
+        ]),
+        throwsA(isA<CliException>()),
+      );
+      expect(
+        () =>
+            admin.run(['license', '--client', 'acme-co', '--config', cfgPath]),
+        throwsA(isA<CliException>()),
+      );
+
+      admin.run([
+        'per-device',
+        '--client',
+        'insideout-casa',
+        '--config',
+        cfgPath,
+      ]);
+      final after = jsonDecode(File(cfgPath).readAsStringSync()) as Map;
+      expect(after.containsKey('DET_BUILD_LICENSE'), isFalse);
+    },
+  );
 }

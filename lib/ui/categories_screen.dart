@@ -62,12 +62,14 @@ class CategoriesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Categories')),
-    floatingActionButton: FloatingActionButton.extended(
-      heroTag: 'fab-add-category',
-      onPressed: () => _edit(context),
-      icon: const Icon(Icons.add),
-      label: const FabLabel('Add category'),
-    ),
+    floatingActionButton: controller.session.readOnly
+        ? null
+        : FloatingActionButton.extended(
+            heroTag: 'fab-add-category',
+            onPressed: () => _edit(context),
+            icon: const Icon(Icons.add),
+            label: const FabLabel('Add category'),
+          ),
     body: ListenableBuilder(
       listenable: controller,
       builder: (context, _) => ListView(

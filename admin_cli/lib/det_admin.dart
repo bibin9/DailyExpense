@@ -25,6 +25,13 @@ Commands:
   verify        --client <id> --token <token> [--request <DETREQ1:...>]
                 [--dir <issuer-dir>]
                 Check a token against the issuer public key (and a request).
+  license       --client <id> --config <file.json> [--until YYYY-MM-DD]
+                [--dir <issuer-dir>]
+                Pre-activate a client's build: writes a signed company licence
+                into the config. Every phone with that build works with no
+                per-phone step. Without --until it never expires.
+  per-device    --client <id> --config <file.json>
+                Remove the company licence: phones must be activated one by one.
   public-key    --client <id> [--dir <issuer-dir>]
                 Print the issuer public key (base64 SPKI DER).
 
@@ -116,6 +123,10 @@ class Admin {
         return _sign(dir, _client(o), o);
       case 'verify':
         return _verify(dir, _client(o), o);
+      case 'license':
+        return _license(dir, _client(o), _req(o, 'config'), o['until']);
+      case 'per-device':
+        return _perDevice(_client(o), _req(o, 'config'));
       case 'public-key':
         final issuer = _loadIssuer(dir, _client(o));
         out.writeln(base64.encode(issuer.spki));
@@ -176,6 +187,75 @@ class Admin {
         '${const JsonEncoder.withIndent('  ').convert(config)}\n',
       );
     out.writeln('Wrote $outPath (contains only the PUBLIC key).');
+    return 0;
+  }
+
+  Map<String, Object?> _readConfig(String path, String client) {
+    final f = File(path);
+    if (!f.existsSync()) throw CliException('Config $path not found', 66);
+    final cfg = (jsonDecode(f.readAsStringSync()) as Map)
+        .cast<String, Object?>();
+    if (cfg['DET_CLIENT_ID'] != client) {
+      throw CliException(
+        '$path is for "${cfg['DET_CLIENT_ID']}", not "$client"',
+      );
+    }
+    return cfg;
+  }
+
+  void _writeConfig2(String path, Map<String, Object?> cfg) => File(
+    path,
+  ).writeAsStringSync('${const JsonEncoder.withIndent('  ').convert(cfg)}\n');
+
+  int _license(String dir, String client, String configPath, String? until) {
+    final issuer = _loadIssuer(dir, client);
+    final cfg = _readConfig(configPath, client);
+    DateTime? exp;
+    if (until != null) {
+      final m = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(until);
+      if (m == null) throw CliException('--until must be YYYY-MM-DD');
+      // Valid through the whole day in the UAE (UTC+4).
+      exp = DateTime.utc(
+        int.parse(m.group(1)!),
+        int.parse(m.group(2)!),
+        int.parse(m.group(3)!) + 1,
+      ).subtract(const Duration(hours: 4));
+      if (!exp.isAfter(now().toUtc())) {
+        throw CliException('--until must be in the future');
+      }
+    }
+    final token = signBuildLicense(
+      BuildLicense(clientId: client, issuedAt: now().toUtc(), expiresAt: exp),
+      issuer,
+    );
+    final check = verifyBuildLicense(
+      token: token,
+      issuerPublicKey: issuer.spki,
+      expectedClientId: client,
+      now: now().toUtc(),
+    );
+    if (!check.isValid) throw CliException('Self-check failed', 70);
+    cfg['DET_BUILD_LICENSE'] = token;
+    _writeConfig2(configPath, cfg);
+    out
+      ..writeln('Company licence written to $configPath')
+      ..writeln(
+        until == null
+            ? 'No expiry: every phone with this build works indefinitely.'
+            : 'Valid through $until (UAE time); after that the app becomes read-only.',
+      )
+      ..writeln('Rebuild and send the new APK for this to take effect.');
+    return 0;
+  }
+
+  int _perDevice(String client, String configPath) {
+    final cfg = _readConfig(configPath, client);
+    cfg.remove('DET_BUILD_LICENSE');
+    _writeConfig2(configPath, cfg);
+    out.writeln(
+      'Company licence removed: phones with the next build must be '
+      'activated one by one (request code).',
+    );
     return 0;
   }
 

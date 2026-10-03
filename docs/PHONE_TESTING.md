@@ -27,7 +27,10 @@ adb install -r dist\insideout-casa\DailyExpenseTracker-insideout-casa-1.0.0-buil
 
 `-r` installs over an existing copy and keeps its data. That is how real updates behave.
 
-## 3. Activate the phone (you are the administrator)
+## 3. Activate the phone (per-phone mode only)
+
+InsideOut Casa builds from 1.0.3 carry a **company licence**: after unlocking, the app opens straight to Home, so skip this section. It applies only to clients set to per-phone activation.
+
 
 1. Open the app and unlock with fingerprint or PIN. It shows **Activate this phone for InsideOut Casa** and a request code starting `DETREQ1:`.
 2. Tap **Copy request code** and send it to yourself, for example by WhatsApp Web or email.

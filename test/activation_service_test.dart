@@ -163,6 +163,71 @@ void main() {
     );
     expect((await s.check()).phase, ActivationPhase.notConfigured);
   });
+
+  group('company licence (pre-activated build)', () {
+    AppConfig licensed(BuildLicense l, {P256KeyPair? by}) => AppConfig(
+      clientId: 'insideout-casa',
+      clientName: 'InsideOut Casa',
+      issuerPublicKeyBase64: base64.encode(issuer.spki),
+      buildLicense: signBuildLicense(l, by ?? issuer),
+    );
+
+    ActivationService svc(AppConfig c, FakePlatform p, {DateTime? at}) =>
+        ActivationService(
+          config: c,
+          platform: p,
+          tokens: MemTokens(),
+          now: () => at ?? now,
+        );
+
+    test('valid licence: activated with no per-phone step or key', () async {
+      final p = FakePlatform();
+      final state = await svc(
+        licensed(BuildLicense(clientId: 'insideout-casa', issuedAt: now)),
+        p,
+      ).check();
+      expect(state.phase, ActivationPhase.activated);
+      expect(state.companyLicence, isNotNull);
+      expect(state.requestCode, isNull);
+      expect(p.key, isNull); // no installation key is even created
+      expect(state.isReadOnly, isFalse);
+    });
+
+    test('expired licence: opens read-only, not locked', () async {
+      final state = await svc(
+        licensed(
+          BuildLicense(
+            clientId: 'insideout-casa',
+            issuedAt: now,
+            expiresAt: DateTime.utc(2027),
+          ),
+        ),
+        FakePlatform(),
+        at: DateTime.utc(2027, 1, 2),
+      ).check();
+      expect(state.phase, ActivationPhase.licenceExpired);
+      expect(state.isReadOnly, isTrue);
+    });
+
+    test(
+      'licence signed by another key or for another client is refused',
+      () async {
+        final forged = await svc(
+          licensed(
+            BuildLicense(clientId: 'insideout-casa', issuedAt: now),
+            by: P256KeyPair.generate(Random(123)),
+          ),
+          FakePlatform(),
+        ).check();
+        expect(forged.phase, ActivationPhase.notConfigured);
+        final foreign = await svc(
+          licensed(BuildLicense(clientId: 'acme-co', issuedAt: now)),
+          FakePlatform(),
+        ).check();
+        expect(foreign.phase, ActivationPhase.notConfigured);
+      },
+    );
+  });
 }
 
 class _SpoofPlatform extends FakePlatform {

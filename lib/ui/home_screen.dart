@@ -53,12 +53,14 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'fab-add-expense',
-        onPressed: () => openExpenseForm(context, session),
-        icon: const Icon(Icons.add),
-        label: const FabLabel('Add Expense', fontSize: 17),
-      ),
+      floatingActionButton: session.readOnly
+          ? null
+          : FloatingActionButton.extended(
+              heroTag: 'fab-add-expense',
+              onPressed: () => openExpenseForm(context, session),
+              icon: const Icon(Icons.add),
+              label: const FabLabel('Add Expense', fontSize: 17),
+            ),
       body: ListenableBuilder(
         listenable: controller,
         builder: (context, _) {
@@ -88,6 +90,7 @@ class HomeScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _TodayCard(controller: controller),
+                    if (session.readOnly) const _LicenceEndedCard(),
                     if (controller.showBackupReminder)
                       BackupReminderCard(
                         onBackup: () => startCreateBackup(
@@ -201,4 +204,27 @@ class _TodayCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _LicenceEndedCard extends StatelessWidget {
+  const _LicenceEndedCard();
+
+  @override
+  Widget build(BuildContext context) => const Padding(
+    padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+    child: Card(
+      color: Color(0xFFFFF4E5),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.info_outline, color: Color(0xFF8A4B00)),
+            SizedBox(width: 10),
+            Expanded(child: Text(AppSession.readOnlyMessage)),
+          ],
+        ),
+      ),
+    ),
+  );
 }

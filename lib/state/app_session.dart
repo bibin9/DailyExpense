@@ -29,6 +29,15 @@ class AppSession {
   final MetaRepository meta;
   late final BackupService backups = BackupService(db);
 
+  /// True when the company licence has expired: records can be viewed,
+  /// reported and backed up, but not added, edited or deleted.
+  bool readOnly = false;
+
+  static const readOnlyMessage =
+      'The licence for this app has ended. You can still view your records, '
+      'run reports and make a backup. Ask your administrator for an updated '
+      'version to add or change expenses.';
+
   /// Bumped after every committed change so lists and reports refresh.
   final ValueNotifier<int> revision = ValueNotifier(0);
 

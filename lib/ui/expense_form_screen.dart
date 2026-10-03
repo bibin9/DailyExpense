@@ -226,7 +226,9 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
                 IconButton(
                   tooltip: 'Delete',
                   icon: const Icon(Icons.delete_outline),
-                  onPressed: c.isSaving ? null : _delete,
+                  onPressed: c.isSaving || widget.session.readOnly
+                      ? null
+                      : _delete,
                 ),
             ],
           ),
@@ -329,7 +331,10 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
                     ),
                     const SizedBox(height: 28),
                     FilledButton(
-                      onPressed: c.isSaving || cats.isEmpty ? null : _save,
+                      onPressed:
+                          c.isSaving || cats.isEmpty || widget.session.readOnly
+                          ? null
+                          : _save,
                       // Scales the label down instead of overflowing the
                       // button on small phones with large fonts.
                       child: FittedBox(
@@ -360,6 +365,13 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
                         ),
                       ),
                     ),
+                    if (widget.session.readOnly) ...[
+                      const SizedBox(height: 12),
+                      const Text(
+                        AppSession.readOnlyMessage,
+                        style: TextStyle(color: AppColors.danger),
+                      ),
+                    ],
                     if (c.failureMessage != null) ...[
                       const SizedBox(height: 12),
                       Text(

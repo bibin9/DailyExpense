@@ -1,5 +1,18 @@
 # Offline activation
 
+## Two modes (chosen per client)
+
+| Mode | Staff experience | Control | Set with |
+|---|---|---|---|
+| **Company licence** (pre-activated build) — *InsideOut Casa since 1.0.3* | Install, unlock, use. No codes, no messages. | Every phone with that client's APK works. Optional end date; after it the app is **read-only** (view, reports, backup still work; no adding/editing/deleting) until an updated APK is installed. No limit on the number of phones. | `det_admin license --client <id> --config config/clients/<id>.json [--until YYYY-MM-DD]` |
+| **Per-phone activation** | Send a request code, paste back an activation code | Each phone approved individually (seat control) | `det_admin per-device --client <id> --config …` (removes the licence) |
+
+The company licence is an ES256 JWS (`typ: det-build-license`) signed with the client's issuer key and embedded in the build via `DET_BUILD_LICENSE`. It is not secret; its signature proves BCR issued it for that client and fixes its end date. The release check refuses a build whose licence fails verification or has already ended, and warns within 30 days of the end. Phones activated per-phone keep working after switching to a company-licence build.
+
+Why the change for InsideOut (3 Oct 2026): staff were uneasy about copying a code from their phone and sending it to someone, which looks like a scam pattern. Trade-off accepted by the product owner: a shared APK works on any phone, and offline there is no way to count or block phones.
+
+## Per-phone activation (details)
+
 Activation makes sure only phones approved by the administrator can use an unmodified copy of the app. It works with no internet on either side.
 
 ## How it works

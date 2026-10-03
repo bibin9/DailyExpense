@@ -156,7 +156,9 @@ class AppGateController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   GatePhase _afterUnlockPhase() => switch (activation?.phase) {
-    ActivationPhase.activated || ActivationPhase.devBypass => GatePhase.ready,
+    ActivationPhase.activated ||
+    ActivationPhase.devBypass ||
+    ActivationPhase.licenceExpired => GatePhase.ready,
     _ => GatePhase.needsActivation,
   };
 
@@ -224,6 +226,7 @@ class AppGateController extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> refreshActivation() async {
     activation = await activationService!.check();
+    session?.readOnly = activation?.isReadOnly ?? false;
     _set(_afterUnlockPhase());
   }
 

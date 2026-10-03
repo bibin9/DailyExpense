@@ -15,6 +15,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:bcr_activation/bcr_activation.dart';
+
 final failures = <String>[];
 void check(bool ok, String message) {
   stdout.writeln('${ok ? 'PASS' : 'FAIL'}  $message');
@@ -74,6 +76,29 @@ void _checkConfig(String path) {
     !f.readAsStringSync().contains('PRIVATE'),
     'config contains no private key',
   );
+  final licence = cfg['DET_BUILD_LICENSE'] as String?;
+  if (licence != null) {
+    final r = verifyBuildLicense(
+      token: licence,
+      issuerPublicKey: base64.decode(cfg['DET_ISSUER_PUBLIC_KEY'] as String),
+      expectedClientId: cfg['DET_CLIENT_ID'] as String,
+      now: DateTime.now().toUtc(),
+    );
+    check(
+      r.isValid,
+      'company licence verifies and has not ended (${r.status.name})',
+    );
+    final exp = r.licence?.expiresAt;
+    stdout.writeln(
+      'INFO  activation: company licence, '
+      '${exp == null ? 'no end date' : 'ends ${exp.toIso8601String()}'}',
+    );
+    if (exp != null && exp.difference(DateTime.now().toUtc()).inDays < 30) {
+      stdout.writeln('WARN  company licence ends within 30 days');
+    }
+  } else {
+    stdout.writeln('INFO  activation: per-phone (request code)');
+  }
 }
 
 void _checkApk(File apk) {

@@ -90,6 +90,11 @@ class ExpenseFormController extends ChangeNotifier {
   /// database transaction has committed.
   Future<SaveOutcome> submit() async {
     if (_saving) return SaveOutcome.ignoredBusy;
+    if (session.readOnly) {
+      failureMessage = AppSession.readOnlyMessage;
+      notifyListeners();
+      return SaveOutcome.failed;
+    }
     _saving = true;
     failureMessage = null;
     notifyListeners();
@@ -150,6 +155,11 @@ class ExpenseFormController extends ChangeNotifier {
   Future<bool> delete() async {
     final e = existing;
     if (e == null || _saving) return false;
+    if (session.readOnly) {
+      failureMessage = AppSession.readOnlyMessage;
+      notifyListeners();
+      return false;
+    }
     _saving = true;
     notifyListeners();
     try {

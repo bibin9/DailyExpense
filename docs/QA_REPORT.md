@@ -86,3 +86,19 @@ Decisions (product owner, 2 Oct 2026):
 | Monthly reminder after 30 days; "Later" snoozes 7 days | PASS |
 
 Automated total after this change: **148 app + 15 activation + 3 admin = 166 tests, all passing.** The Android native picker code compiles. The iOS picker code is unverified until it is built on a Mac.
+
+## Addendum — company licence / pre-activated build (1.0.3)
+
+Requested by InsideOut staff feedback; the product owner chose option C (a pre-activated build) on 3 Oct 2026.
+
+| Test | Result |
+|---|---|
+| Licence valid / ends exactly at its end instant / no end date | PASS |
+| Licence for another client, signed by another key, with its end date removed, or a per-phone token passed off as a licence | Refused (app treats the build as unconfigured) |
+| Company build: unlock → Home directly; no installation key is even created | PASS |
+| Phone activated per-phone, then updated to a company build | Keeps working |
+| Licence ended: records and reports visible, backup works; add/edit/delete and category changes blocked at controller level and hidden in the UI | PASS |
+| Admin `license --until` = valid through the whole day in UAE time; past dates refused; other config values kept; `per-device` removes it | PASS |
+| Release check verifies the embedded licence | Added |
+
+Automated total: **156 app + 19 activation + 4 admin = 179 tests, all passing.**

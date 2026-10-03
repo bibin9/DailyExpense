@@ -19,6 +19,7 @@ class CategoriesController extends ChangeNotifier {
 
   /// Returns null on success or a user-facing error message.
   String? _run(void Function() action) {
+    if (session.readOnly) return AppSession.readOnlyMessage;
     try {
       action();
       session.dataChanged();

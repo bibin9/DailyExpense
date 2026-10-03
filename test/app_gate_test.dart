@@ -10,6 +10,8 @@ import 'package:daily_expense_tracker/domain/models.dart';
 import 'package:daily_expense_tracker/platform/storage_layout.dart';
 import 'package:daily_expense_tracker/security/device_auth.dart';
 import 'package:daily_expense_tracker/state/app_gate_controller.dart';
+import 'package:daily_expense_tracker/state/categories_controller.dart';
+import 'package:daily_expense_tracker/state/expense_form_controller.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -253,5 +255,97 @@ void main() {
     await pumpEventQueue();
     expect(g.phase, GatePhase.locked);
     g.dispose();
+  });
+
+  group('company licence build', () {
+    AppGateController companyGate({DateTime? exp}) => AppGateController(
+      config: AppConfig(
+        clientId: 'insideout-casa',
+        clientName: 'InsideOut Casa',
+        issuerPublicKeyBase64: base64.encode(issuer.spki),
+        buildLicense: signBuildLicense(
+          BuildLicense(
+            clientId: 'insideout-casa',
+            issuedAt: DateTime.utc(2026),
+            expiresAt: exp,
+          ),
+          issuer,
+        ),
+      ),
+      platform: platform,
+      keyStore: keys,
+      auth: auth,
+      clock: clock,
+      resolveLayout: () async =>
+          StorageLayout(Directory('${root.path}/det_data')),
+    );
+
+    test('first launch goes straight from unlock to ready', () async {
+      final g = companyGate();
+      await g.start();
+      expect(g.phase, GatePhase.ready);
+      expect(g.session!.readOnly, isFalse);
+      g.dispose();
+    });
+
+    test('a phone activated per-device keeps working after switching to a company build', () async {
+      final g = await activated();
+      g.dispose();
+      final g2 = companyGate();
+      await g2.start();
+      expect(g2.phase, GatePhase.ready);
+      g2.dispose();
+    });
+
+    test(
+      'expired licence: read-only — view and backup yes, changes no',
+      () async {
+        // Some data first, while licensed.
+        final g = companyGate(exp: DateTime.utc(2026, 12, 1));
+        await g.start();
+        final s = g.session!;
+        s.expenses.insert(
+          ExpenseDraft(
+            categoryId: s.categories.active().first.id,
+            amountFils: 500,
+            remarks: null,
+          ),
+          dubai(2026, 10, 2),
+          nowUtcMs: 1,
+        );
+        g.dispose();
+
+        clock.value = DateTime(2026, 12, 2);
+        final g2 = companyGate(exp: DateTime.utc(2026, 12, 1));
+        await g2.start();
+        expect(g2.phase, GatePhase.ready);
+        final s2 = g2.session!;
+        expect(s2.readOnly, isTrue);
+        expect(s2.expenses.count(), 1); // records still visible
+
+        final form = ExpenseFormController(s2)
+          ..selectCategory(s2.categories.active().first.id)
+          ..amount.text = '5';
+        expect(await form.submit(), SaveOutcome.failed);
+        expect(form.failureMessage, contains('licence'));
+        expect(s2.expenses.count(), 1);
+
+        final edit = ExpenseFormController(
+          s2,
+          existing: s2.expenses.recent(limit: 1).single,
+        );
+        expect(await edit.delete(), isFalse);
+        expect(CategoriesController(s2).add('Tolls'), contains('licence'));
+
+        // Backup still works so staff can keep their records.
+        final info = s2.backups.createBackup(
+          outPath: '${root.path}/expired.$backupFileExtension',
+          password: 'password1',
+          nowUtcMs: 1,
+        );
+        expect(info.expenseCount, 1);
+        g2.dispose();
+      },
+    );
   });
 }

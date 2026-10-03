@@ -14,3 +14,4 @@ export 'src/der.dart'
         pemOrBase64Decode;
 export 'src/p256.dart' show P256KeyPair, sha256, verifyP256Der, verifyP256Raw;
 export 'src/token.dart';
+export 'src/build_license.dart';

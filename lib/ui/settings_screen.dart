@@ -157,11 +157,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
           _Section(
-            title: 'Activation',
+            title: 'Licence',
             icon: Icons.verified_user_outlined,
             children: [
               _kv('Company', gate.config.displayClientName),
+              if (act?.companyLicence != null)
+                _kv(
+                  'Valid until',
+                  act!.companyLicence!.expiresAt == null
+                      ? 'No end date'
+                      : formatDateLong(
+                          LocalDate.fromDateTime(
+                            act.companyLicence!.expiresAt!.toLocal().subtract(
+                              const Duration(minutes: 1),
+                            ),
+                          ),
+                        ),
+                ),
               _kv('Status', switch (act?.phase) {
+                ActivationPhase.activated when act?.companyLicence != null =>
+                  'Company licence — active',
+                ActivationPhase.licenceExpired => 'Licence ended — read-only',
                 ActivationPhase.activated => 'Activated',
                 ActivationPhase.devBypass =>
                   AppConfig.devBypassActive

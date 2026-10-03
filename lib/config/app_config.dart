@@ -11,7 +11,7 @@ abstract final class Product {
   static const vendorShort = 'BCR';
   static const vendorLong = 'BibinCutRiver';
   static const signature = 'Crafted by BCR';
-  static const version = '1.0.2';
+  static const version = '1.0.3';
 }
 
 /// Decides whether the development activation bypass may be used.
@@ -25,12 +25,14 @@ class AppConfig {
     required this.clientId,
     required this.clientName,
     required this.issuerPublicKeyBase64,
+    this.buildLicense = '',
   });
 
   static const AppConfig fromEnvironment = AppConfig(
     clientId: String.fromEnvironment('DET_CLIENT_ID'),
     clientName: String.fromEnvironment('DET_CLIENT_NAME'),
     issuerPublicKeyBase64: String.fromEnvironment('DET_ISSUER_PUBLIC_KEY'),
+    buildLicense: String.fromEnvironment('DET_BUILD_LICENSE'),
   );
 
   /// `kDebugMode` is a compile-time constant, so in release/profile builds
@@ -43,6 +45,12 @@ class AppConfig {
   final String clientId;
   final String clientName;
   final String issuerPublicKeyBase64;
+
+  /// Signed company licence (det_admin `license`). When present, every phone
+  /// with this build is licensed and there is no per-phone activation.
+  final String buildLicense;
+
+  bool get isCompanyLicensed => buildLicense.isNotEmpty;
 
   String get displayClientName => clientName.isEmpty ? clientId : clientName;
 

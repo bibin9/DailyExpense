@@ -52,6 +52,8 @@ class UiHarness {
   Future<void> start({
     Size size = const Size(360, 640),
     double textScale = 1,
+    bool companyLicence = false,
+    DateTime? licenceExpires,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -69,6 +71,16 @@ class UiHarness {
         clientId: 'insideout-casa',
         clientName: 'InsideOut Casa',
         issuerPublicKeyBase64: base64.encode(issuer.spki),
+        buildLicense: companyLicence
+            ? signBuildLicense(
+                BuildLicense(
+                  clientId: 'insideout-casa',
+                  issuedAt: DateTime.utc(2026),
+                  expiresAt: licenceExpires,
+                ),
+                issuer,
+              )
+            : '',
       ),
       platform: platform = FakePlatform(seed: _seed++),
       keyStore: MemoryKeyStore(),
@@ -79,9 +91,17 @@ class UiHarness {
     );
     await tester.runAsync(() async {
       await tester.pumpWidget(DailyExpenseApp(gate: gate));
-      await _until(() => gate.phase == GatePhase.needsActivation);
+      await _until(
+        () =>
+            gate.phase == GatePhase.needsActivation ||
+            gate.phase == GatePhase.ready,
+      );
     });
     await tester.pumpAndSettle();
+    if (companyLicence) {
+      expect(gate.phase, GatePhase.ready); // no activation screen at all
+      return;
+    }
     final req = ActivationRequest.parse(gate.activation!.requestCode!);
     final token = signActivationToken(
       ActivationClaims(

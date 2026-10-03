@@ -15,6 +15,10 @@ enum ActivationPhase {
 
   /// Debug-only bypass. Unreachable in release builds.
   devBypass,
+
+  /// Company licence past its end date: the app opens read-only (view,
+  /// reports and backup still work; adding and editing do not).
+  licenceExpired,
 }
 
 class ActivationState {
@@ -24,6 +28,7 @@ class ActivationState {
     this.fingerprint,
     this.claims,
     this.problem,
+    this.companyLicence,
   });
 
   final ActivationPhase phase;
@@ -33,6 +38,11 @@ class ActivationState {
 
   /// Why a previously stored token is no longer accepted (shown to user).
   final String? problem;
+
+  /// Set when the build carries a company licence (no per-phone step).
+  final BuildLicense? companyLicence;
+
+  bool get isReadOnly => phase == ActivationPhase.licenceExpired;
 }
 
 /// Where the activation token is kept (inside the encrypted database).
@@ -124,6 +134,27 @@ class ActivationService {
     if (!config.isComplete || issuer == null) {
       return const ActivationState(ActivationPhase.notConfigured);
     }
+    if (config.isCompanyLicensed) {
+      final r = verifyBuildLicense(
+        token: config.buildLicense,
+        issuerPublicKey: issuer,
+        expectedClientId: config.clientId,
+        now: now(),
+      );
+      return switch (r.status) {
+        BuildLicenseStatus.valid => ActivationState(
+          ActivationPhase.activated,
+          companyLicence: r.licence,
+        ),
+        BuildLicenseStatus.expired => ActivationState(
+          ActivationPhase.licenceExpired,
+          companyLicence: r.licence,
+        ),
+        // A tampered or foreign licence is treated as an unconfigured build.
+        _ => const ActivationState(ActivationPhase.notConfigured),
+      };
+    }
+
     final token = tokens.readToken();
     if (token == null) return _needs(null);
 
