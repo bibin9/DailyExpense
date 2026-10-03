@@ -411,7 +411,7 @@ class BackupReminderCard extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
     child: Card(
-      color: const Color(0xFFFFF4E5),
+      color: AppColors.notice,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
         child: Column(
@@ -419,7 +419,7 @@ class BackupReminderCard extends StatelessWidget {
           children: [
             const Row(
               children: [
-                Icon(Icons.backup_outlined, color: Color(0xFF8A4B00)),
+                Icon(Icons.backup_outlined, color: AppColors.ink),
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(

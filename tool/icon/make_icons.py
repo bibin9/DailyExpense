@@ -3,7 +3,7 @@ Run from the repo root: python tool/icon/make_icons.py"""
 import os
 from PIL import Image, ImageDraw, ImageFont
 
-BLUE, DARK, WHITE = (21, 101, 192), (13, 71, 161), (255, 255, 255)
+BLUE, DARK, WHITE = (17, 17, 17), (17, 17, 17), (255, 255, 255)  # black-and-white brand
 S = 1024
 
 def font(size):
@@ -28,7 +28,7 @@ f = font(150)
 tw = d.textlength("AED", font=f)
 d.text(((S - tw) / 2, 250), "AED", font=f, fill=DARK)
 for y, x2 in ((480, 690), (560, 640), (640, 690)):
-    d.rounded_rectangle([334, y, x2, y + 34], radius=17, fill=(187, 222, 251))
+    d.rounded_rectangle([334, y, x2, y + 34], radius=17, fill=(205, 205, 205))
 d.rounded_rectangle([334, 730, 690, 772], radius=21, fill=BLUE)
 
 root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

@@ -18,6 +18,7 @@ An offline Android and iPhone app where each person records **their own** daily 
 | Edit / delete | Description, amount, remarks editable; capture date/time never changes · delete after confirmation (permanent) |
 | Categories | Seeded once: Petrol, Food, Labor, Salik, Carwash, Vehicle Maintenance, Car Parking Fee, Other · add / rename / turn off · duplicates blocked ignoring case and spaces |
 | Reports | Daily (default today) · Weekly (Mon–Sun) · Monthly (calendar month) — entries newest first, count, total, per-category subtotals |
+| Design | Black-and-white: white screens, near-black text and buttons, black Today card and lock screen, black app icon; red only for errors and Delete |
 | Security | Device unlock (biometric with PIN/passcode fallback), relock after 2 min in background, screenshot block (Android), app-switcher cover (both), no backups, no network |
 | Licensing | Per client, either **company licence** (pre-activated build: install and use, optional end date, then read-only) or **per-phone activation** (request code bound to a hardware key). InsideOut Casa: company licence, no end date. |
 | Backup / new phone | Settings → **Create backup**: one encrypted file (SQLCipher, user password ≥ 8 chars) saved wherever the user chooses via the phone's own file picker · new phone: activate, then **Restore** (only into an empty app) · monthly reminder on Home · activation never travels in a backup |

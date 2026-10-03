@@ -13,7 +13,7 @@ class SceneDelegate: FlutterSceneDelegate {
     guard privacyCover == nil, let window = (scene as? UIWindowScene)?.windows.first else { return }
     let cover = UIView(frame: window.bounds)
     cover.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-    cover.backgroundColor = UIColor(red: 0x15 / 255, green: 0x65 / 255, blue: 0xC0 / 255, alpha: 1)
+    cover.backgroundColor = UIColor(red: 0x11 / 255, green: 0x11 / 255, blue: 0x11 / 255, alpha: 1)
     let label = UILabel()
     label.text = "Daily Expense Tracker"
     label.textColor = .white

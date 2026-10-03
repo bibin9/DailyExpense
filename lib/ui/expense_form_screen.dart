@@ -163,7 +163,7 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
     // Full-width text (no leading/trailing icons squeezing it) so the card
     // stays compact on small phones with large accessibility fonts.
     return Card(
-      color: AppColors.blueLight,
+      color: AppColors.tint,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Column(
@@ -171,7 +171,7 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
           children: [
             Row(
               children: [
-                const Icon(Icons.schedule, size: 18, color: AppColors.blueDark),
+                const Icon(Icons.schedule, size: 18, color: AppColors.ink),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(

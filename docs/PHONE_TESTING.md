@@ -63,7 +63,7 @@ dart run admin_cli/bin/det_admin.dart sign --client insideout-casa --label "Test
 | 11 | Categories → add "Tolls", try adding "petrol" | Duplicate refused |
 | 12 | Turn off "Carwash" | Not offered in Add Expense; old Carwash entries still show and still appear in reports |
 | 13 | Swipe the app away, reopen | Asks to unlock; all data still there |
-| 14 | Recent-apps screen | Preview is blank or blue, never your expenses |
+| 14 | Recent-apps screen | Preview is blank or black, never your expenses |
 | 15 | Try a screenshot inside the app | Blocked |
 | 16 | Leave the app 1 minute, return | Not locked |
 | 17 | Leave the app 2+ minutes, return | Locked; asks to unlock |

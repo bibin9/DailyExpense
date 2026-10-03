@@ -75,7 +75,7 @@ Android (test at least one Samsung and one other OEM, Android 8/9 and 14+):
 1. First launch in **airplane mode**: unlock → activation (paste code) → add/edit/delete → reports.
 2. App lock: fingerprint, fallback to PIN, cancel, 5+ wrong attempts (lockout message), no screen lock set (blocking screen), relock after 2 min in background; not after 1 min.
 3. Kill the app and restart: records, categories, activation still present.
-4. Recent-apps shows blank/blue preview; screenshots blocked (FLAG_SECURE).
+4. Recent-apps shows blank/black preview; screenshots blocked (FLAG_SECURE).
 5. Settings → Key protection shows TEE/StrongBox (hardware-backed).
 6. Backup: Google One backup + "Copy data" to a new phone (Smart Switch on Samsung) — confirm the app's data is **not** restored/transferred, or is unreadable and the app asks to start fresh.
 7. Fill storage to < 5 MB free → saving shows the storage message, nothing lost.
@@ -85,7 +85,7 @@ Android (test at least one Samsung and one other OEM, Android 8/9 and 14+):
 
 iPhone (after Mac build):
 1. Same flows 1–3, 8–9 with Face ID / Touch ID / passcode; Face ID permission text.
-2. App switcher shows the blue cover.
+2. App switcher shows the black cover.
 3. Settings → Key protection shows "Secure Enclave".
 4. Backup exclusion: encrypted Finder/iTunes backup and iCloud backup → restore to another iPhone → data absent; check `isExcludedFromBackup` on the data folder and files.
 5. Reinstall: delete app, reinstall → starts clean (stale Keychain items removed), asks for activation.

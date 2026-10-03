@@ -22,16 +22,18 @@ from reportlab.platypus import (Flowable, Image, KeepTogether, PageBreak,
                                 Paragraph, SimpleDocTemplate, Spacer, Table,
                                 TableStyle)
 
-BLUE = colors.HexColor('#1565C0')
-BLUE_DARK = colors.HexColor('#0D47A1')
-BLUE_LIGHT = colors.HexColor('#E3F2FD')
-AMBER_BG = colors.HexColor('#FFF4E5')
-AMBER = colors.HexColor('#8A4B00')
-RED = colors.HexColor('#D32F2F')
+# Black-and-white brand (matches the app).
+BLUE = colors.HexColor('#111111')        # ink: header band, buttons, numbers
+BLUE_DARK = colors.HexColor('#111111')   # headings
+BLUE_LIGHT = colors.HexColor('#F2F2F2')  # info boxes
+AMBER_BG = colors.HexColor('#FFFFFF')    # important boxes: white, heavy border
+AMBER = colors.HexColor('#111111')
+RED = colors.HexColor('#111111')         # TAP marker
 GREEN = colors.HexColor('#2E7D32')
 TEXT = colors.HexColor('#1A1C1E')
 MUTED = colors.HexColor('#4A5560')
-SCREEN_BG = colors.HexColor('#F6F8FB')
+SCREEN_BG = colors.HexColor('#FAFAFA')
+LINE = colors.HexColor('#E3E3E3')
 
 FONT_DIRS = ['C:/Windows/Fonts', '/System/Library/Fonts/Supplemental', '/usr/share/fonts/truetype/msttcorefonts']
 
@@ -71,7 +73,7 @@ def P(text, style='body'):
 class PhoneScreen(Flowable):
     """A simple drawn phone showing a message and the button to tap."""
 
-    def __init__(self, title, lines, buttons, tap, width=44 * mm, height=62 * mm, note=None):
+    def __init__(self, title, lines, buttons, tap, width=44 * mm, height=65 * mm, note=None):
         super().__init__()
         self.title, self.lines, self.buttons, self.tap = title, lines, buttons, tap
         self.width, self.height, self.note = width, height, note
@@ -83,16 +85,19 @@ class PhoneScreen(Flowable):
         c = self.canv
         w, h = self.width, self.height
         # Body of the phone.
-        c.setFillColor(colors.HexColor('#263238'))
+        c.setFillColor(colors.HexColor('#111111'))
         c.roundRect(0, 0, w, h, 6 * mm, fill=1, stroke=0)
         sx, sy, sw, sh = 2.5 * mm, 6 * mm, w - 5 * mm, h - 11 * mm
         c.setFillColor(SCREEN_BG)
         c.roundRect(sx, sy, sw, sh, 3 * mm, fill=1, stroke=0)
-        # Title bar.
-        c.setFillColor(BLUE)
+        # Title bar: white with a hairline, like the app's header.
+        c.setFillColor(colors.white)
         c.roundRect(sx, sy + sh - 9 * mm, sw, 9 * mm, 3 * mm, fill=1, stroke=0)
         c.rect(sx, sy + sh - 9 * mm, sw, 4 * mm, fill=1, stroke=0)
-        c.setFillColor(colors.white)
+        c.setStrokeColor(LINE)
+        c.setLineWidth(0.6)
+        c.line(sx, sy + sh - 9 * mm, sx + sw, sy + sh - 9 * mm)
+        c.setFillColor(BLUE)
         c.setFont(FB, 8.5)
         c.drawString(sx + 3 * mm, sy + sh - 6 * mm, self.title)
         # Message lines.
@@ -106,20 +111,23 @@ class PhoneScreen(Flowable):
         by = sy + 4 * mm
         for label in reversed(self.buttons):
             hit = label == self.tap
+            filled = hit or self.tap is None
             bw = sw - 8 * mm
             bx = sx + 4 * mm
-            c.setFillColor(BLUE if hit else colors.white)
+            c.setFillColor(BLUE if filled else colors.white)
             c.setStrokeColor(BLUE)
             c.setLineWidth(1)
             c.roundRect(bx, by, bw, 7.5 * mm, 3.7 * mm, fill=1, stroke=1)
-            c.setFillColor(colors.white if hit else BLUE)
+            c.setFillColor(colors.white if filled else BLUE)
             c.setFont(FB, 8.5)
             c.drawCentredString(bx + bw / 2, by + 2.5 * mm, label)
             if hit:
                 # Red ring + "TAP" marker.
                 c.setStrokeColor(RED)
-                c.setLineWidth(2)
-                c.roundRect(bx - 1.5 * mm, by - 1.5 * mm, bw + 3 * mm, 10.5 * mm, 5 * mm, fill=0, stroke=1)
+                c.setLineWidth(1.6)
+                c.setDash(2.2, 1.6)
+                c.roundRect(bx - 1.6 * mm, by - 1.6 * mm, bw + 3.2 * mm, 10.7 * mm, 5.2 * mm, fill=0, stroke=1)
+                c.setDash()
                 c.setFillColor(RED)
                 c.circle(bx + bw + 1 * mm, by + 9.5 * mm, 3.2 * mm, fill=1, stroke=0)
                 c.setFillColor(colors.white)
@@ -159,7 +167,7 @@ def box(paras, bg=BLUE_LIGHT, border=BLUE):
     t = Table([[[P(p, 'box') for p in paras]]], colWidths=[None])
     t.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), bg),
-        ('BOX', (0, 0), (-1, -1), 0.8, border),
+        ('BOX', (0, 0), (-1, -1), 1.4 if bg == AMBER_BG else 0.6, border),
         ('ROUNDEDCORNERS', [3 * mm] * 4),
         ('LEFTPADDING', (0, 0), (-1, -1), 4 * mm), ('RIGHTPADDING', (0, 0), (-1, -1), 4 * mm),
         ('TOPPADDING', (0, 0), (-1, -1), 3 * mm), ('BOTTOMPADDING', (0, 0), (-1, -1), 3 * mm),

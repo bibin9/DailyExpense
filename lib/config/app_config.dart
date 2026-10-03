@@ -11,7 +11,7 @@ abstract final class Product {
   static const vendorShort = 'BCR';
   static const vendorLong = 'BibinCutRiver';
   static const signature = 'Crafted by BCR';
-  static const version = '1.0.3';
+  static const version = '1.0.4';
 }
 
 /// Decides whether the development activation bypass may be used.

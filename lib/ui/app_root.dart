@@ -68,7 +68,7 @@ class _PrivacyCover extends StatelessWidget {
   const _PrivacyCover();
   @override
   Widget build(BuildContext context) => const ColoredBox(
-    color: AppColors.blue,
+    color: AppColors.ink,
     child: Center(child: AppLogo(size: 96)),
   );
 }

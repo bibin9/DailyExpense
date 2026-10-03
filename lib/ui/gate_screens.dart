@@ -8,11 +8,11 @@ import '../state/app_gate_controller.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
-const _onBlue = TextStyle(color: Colors.white, fontSize: 16, height: 1.4);
+const _onDark = TextStyle(color: Colors.white, fontSize: 16, height: 1.4);
 
 ButtonStyle _whiteButton() => FilledButton.styleFrom(
   backgroundColor: Colors.white,
-  foregroundColor: AppColors.blueDark,
+  foregroundColor: AppColors.ink,
 );
 
 class StartingScreen extends StatelessWidget {
@@ -35,14 +35,14 @@ class LockScreen extends StatelessWidget {
       const Text(
         'Locked. Use your fingerprint, face or phone PIN to continue.',
         textAlign: TextAlign.center,
-        style: _onBlue,
+        style: _onDark,
       ),
       if (gate.message != null) ...[
         const SizedBox(height: 16),
         Text(
           gate.message!,
           textAlign: TextAlign.center,
-          style: _onBlue.copyWith(fontWeight: FontWeight.w600),
+          style: _onDark.copyWith(fontWeight: FontWeight.w600),
         ),
       ],
       const SizedBox(height: 24),
@@ -80,7 +80,7 @@ class NoDeviceSecurityScreen extends StatelessWidget {
         'PIN, pattern, password or passcode in your phone Settings '
         '(Security / Face ID & Passcode), then come back and tap Check again.',
         textAlign: TextAlign.center,
-        style: _onBlue,
+        style: _onDark,
       ),
       const SizedBox(height: 24),
       FilledButton(
@@ -116,7 +116,7 @@ class StartupErrorScreen extends StatelessWidget {
       Text(
         gate.message ?? 'The app could not start.',
         textAlign: TextAlign.center,
-        style: _onBlue,
+        style: _onDark,
       ),
       const SizedBox(height: 24),
       FilledButton(
@@ -188,7 +188,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
             'This copy of the app has not been set up for a company yet. '
             'Please install the copy provided by your administrator.',
             textAlign: TextAlign.center,
-            style: _onBlue,
+            style: _onDark,
           ),
         ],
       );
@@ -211,13 +211,13 @@ class _ActivationScreenState extends State<ActivationScreen> {
           '1. Send the request code below to your administrator.\n'
           '2. Paste the activation code they send back, then tap Activate.\n'
           'No internet is needed.',
-          style: _onBlue,
+          style: _onDark,
         ),
         if (state?.problem != null) ...[
           const SizedBox(height: 12),
           Text(
             state!.problem!,
-            style: _onBlue.copyWith(fontWeight: FontWeight.w600),
+            style: _onDark.copyWith(fontWeight: FontWeight.w600),
           ),
         ],
         const SizedBox(height: 16),

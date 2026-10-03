@@ -48,7 +48,7 @@ class HomeScreen extends StatelessWidget {
             const Text(Product.name),
             Text(
               clientName,
-              style: const TextStyle(fontSize: 13, color: Colors.white70),
+              style: const TextStyle(fontSize: 13, color: AppColors.muted),
             ),
           ],
         ),
@@ -171,7 +171,9 @@ class _TodayCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [AppColors.blue, AppColors.blueDark],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.inkSoft, AppColors.ink],
         ),
         borderRadius: BorderRadius.circular(18),
       ),
@@ -180,7 +182,7 @@ class _TodayCard extends StatelessWidget {
         children: [
           Text(
             'Today · ${formatDateLong(controller.today)}',
-            style: const TextStyle(color: Colors.white70, fontSize: 14),
+            style: const TextStyle(color: Color(0xFFBDBDBD), fontSize: 14),
           ),
           const SizedBox(height: 8),
           FittedBox(
@@ -213,13 +215,13 @@ class _LicenceEndedCard extends StatelessWidget {
   Widget build(BuildContext context) => const Padding(
     padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
     child: Card(
-      color: Color(0xFFFFF4E5),
+      color: AppColors.notice,
       child: Padding(
         padding: EdgeInsets.all(16),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.info_outline, color: Color(0xFF8A4B00)),
+            Icon(Icons.info_outline, color: AppColors.ink),
             SizedBox(width: 10),
             Expanded(child: Text(AppSession.readOnlyMessage)),
           ],

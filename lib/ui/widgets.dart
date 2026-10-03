@@ -43,7 +43,7 @@ class AppLogo extends StatelessWidget {
     child: Icon(
       Icons.receipt_long_rounded,
       size: size * 0.6,
-      color: AppColors.blue,
+      color: AppColors.ink,
       semanticLabel: Product.name,
     ),
   );
@@ -56,7 +56,7 @@ class BrandedPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: AppColors.blue,
+    backgroundColor: AppColors.ink,
     body: SafeArea(
       child: LayoutBuilder(
         builder: (context, c) => SingleChildScrollView(
@@ -107,7 +107,7 @@ class EmptyState extends StatelessWidget {
     padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
     child: Column(
       children: [
-        Icon(icon, size: 48, color: AppColors.blue.withValues(alpha: 0.6)),
+        Icon(icon, size: 48, color: AppColors.ink.withValues(alpha: 0.6)),
         const SizedBox(height: 12),
         Text(
           title,
@@ -160,8 +160,8 @@ class ExpenseTile extends StatelessWidget {
     return ListTile(
       onTap: onTap,
       leading: CircleAvatar(
-        backgroundColor: AppColors.blueLight,
-        foregroundColor: AppColors.blueDark,
+        backgroundColor: AppColors.tint,
+        foregroundColor: AppColors.ink,
         child: Text(
           e.currentCategoryName.isEmpty
               ? '?'
@@ -213,7 +213,11 @@ class AmountLabel extends StatelessWidget {
       child: Text(
         formatAed(fils),
         maxLines: 1,
-        style: TextStyle(fontWeight: FontWeight.w600, fontSize: fontSize),
+        style: TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: fontSize,
+          color: AppColors.ink,
+        ),
       ),
     ),
   );

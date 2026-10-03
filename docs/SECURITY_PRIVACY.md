@@ -63,7 +63,7 @@
 
 - **Android:** `FLAG_SECURE` is set in `onCreate` before the first frame. It blocks screenshots and screen recording and blanks the recent-apps preview.
 - **iOS:** a cover view is shown on `sceneWillResignActive`, so the app-switcher snapshot shows the cover. iOS offers no universal screenshot-blocking API.
-- **Both:** Flutter also draws a blue cover while the app is inactive.
+- **Both:** Flutter also draws a black cover while the app is inactive.
 
 ## Authentication
 

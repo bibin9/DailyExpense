@@ -31,6 +31,32 @@ class UiHarness {
   /// layout and wrapping match a phone.
   static Future<void> loadRealFont() async {
     if (_fontLoaded) return;
+    // Prefer Flutter's bundled Roboto (all weights) — what Android shows.
+    final flutterRoot = Platform.environment['FLUTTER_ROOT'];
+    final fonts = flutterRoot == null
+        ? null
+        : Directory('$flutterRoot/bin/cache/artifacts/material_fonts');
+    if (fonts != null && fonts.existsSync()) {
+      final roboto = FontLoader('Roboto');
+      for (final f in fonts.listSync().whereType<File>()) {
+        final name = f.path.split(Platform.pathSeparator).last.toLowerCase();
+        if (name.startsWith('roboto-') && name.endsWith('.ttf')) {
+          roboto.addFont(
+            Future.value(ByteData.sublistView(f.readAsBytesSync())),
+          );
+        }
+      }
+      await roboto.load();
+      final icons = File('${fonts.path}/materialicons-regular.otf');
+      if (icons.existsSync()) {
+        await (FontLoader('MaterialIcons')..addFont(
+              Future.value(ByteData.sublistView(icons.readAsBytesSync())),
+            ))
+            .load();
+      }
+      _fontLoaded = true;
+      return;
+    }
     const candidates = [
       'C:/Windows/Fonts/arial.ttf',
       '/System/Library/Fonts/Supplemental/Arial.ttf',
@@ -44,6 +70,20 @@ class UiHarness {
           ..addFont(Future.value(ByteData.sublistView(bytes)));
         await loader.load();
         _fontLoaded = true;
+        // Material icons, so previews show real icons instead of boxes.
+        final root = Platform.environment['FLUTTER_ROOT'];
+        if (root != null) {
+          final icons = File(
+            '$root/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
+          );
+          if (icons.existsSync()) {
+            final il = FontLoader('MaterialIcons')
+              ..addFont(
+                Future.value(ByteData.sublistView(icons.readAsBytesSync())),
+              );
+            await il.load();
+          }
+        }
         return;
       }
     }

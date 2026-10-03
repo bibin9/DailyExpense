@@ -278,7 +278,7 @@ class _Section extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: 12),
     child: Card(
-      color: highlight ? const Color(0xFFFFF4E5) : null,
+      color: highlight ? AppColors.notice : null,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -286,10 +286,7 @@ class _Section extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(
-                  icon,
-                  color: highlight ? const Color(0xFF8A4B00) : AppColors.blue,
-                ),
+                Icon(icon, color: AppColors.ink),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(

@@ -123,7 +123,7 @@ class ReportsScreen extends StatelessWidget {
                                   style: const TextStyle(
                                     fontSize: 26,
                                     fontWeight: FontWeight.w700,
-                                    color: AppColors.blueDark,
+                                    color: AppColors.ink,
                                   ),
                                 ),
                               ),
